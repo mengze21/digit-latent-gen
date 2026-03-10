@@ -1,0 +1,3 @@
+model: openai/qwen3-coder-next:cloud
+openai-api-base: https://ollama.com/v1
+openai-api-key: 657874ca157042da9e464132d22d07b3.SpIBtyaWx8Elg9pIGmXwN0CO
