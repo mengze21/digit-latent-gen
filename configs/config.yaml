@@ -1,0 +1,28 @@
+# Configuration for VAE model, training, and testing.
+
+model:
+  in_channels: 1
+  height: 32
+  width: 32
+  latent_dim: 32
+  num_classes: 10
+
+training:
+  batch_size: 64
+  epochs: 20
+  learning_rate: 0.001
+  weight_decay: 0.0
+  kl_weight: 1.0
+  shuffle: true
+  num_workers: 0
+  device: "cpu"
+  log_interval: 100
+  checkpoint_dir: "checkpoints"
+
+testing:
+  batch_size: 64
+  num_workers: 0
+  device: "cpu"
+  checkpoint_path: "checkpoints/latest.pt"
+  save_reconstructions: true
+  output_dir: "outputs"
