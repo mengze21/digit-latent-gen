@@ -1,13 +1,18 @@
 import argparse
-import sys
 from pathlib import Path
 
 import torch
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-
-from digit_latent_gen.models.vae import Decoder, Encoder, VAE
+CONFIG_PATH = ROOT / "configs" / "config.yaml"
+try:
+    from digit_latent_gen.models.vae import Decoder, Encoder, VAE
+except ModuleNotFoundError as exc:
+    raise ModuleNotFoundError(
+        "Could not import 'digit_latent_gen'. Install the project into the environment first, "
+        "for example with 'pip install -e .', then rerun this script."
+    ) from exc
 
 
 def _format_shape(value):
@@ -54,20 +59,27 @@ def _print_summary(title, rows):
 
 def main():
     parser = argparse.ArgumentParser(description="Display VAE layer names and tensor shapes.")
-    parser.add_argument("--latent-dim", type=int, default=20, help="Latent dimension size.")
-    parser.add_argument("--num-classes", type=int, default=10, help="Number of label classes.")
+    parser.add_argument("--config", type=Path, default=CONFIG_PATH, help="Path to the YAML config file.")
     parser.add_argument("--batch-size", type=int, default=2, help="Batch size for dummy inputs.")
-    parser.add_argument("--height", type=int, default=32, help="Input image height.")
-    parser.add_argument("--width", type=int, default=32, help="Input image width.")
     args = parser.parse_args()
 
-    x = torch.randn(args.batch_size, 1, args.height, args.width)
-    labels = torch.arange(args.batch_size, dtype=torch.long) % args.num_classes
-    z = torch.randn(args.batch_size, args.latent_dim)
+    with args.config.open("r", encoding="utf-8") as config_file:
+        config = yaml.safe_load(config_file)
 
-    encoder = Encoder(latent_dim=args.latent_dim, num_classes=args.num_classes)
-    decoder = Decoder(latent_dim=args.latent_dim, num_classes=args.num_classes)
-    vae = VAE(latent_dim=args.latent_dim, num_classes=args.num_classes)
+    model_config = config["model"]
+    in_channels = model_config["in_channels"]
+    height = model_config["height"]
+    width = model_config["width"]
+    latent_dim = model_config["latent_dim"]
+    num_classes = model_config["num_classes"]
+
+    x = torch.randn(args.batch_size, in_channels, height, width)
+    labels = torch.arange(args.batch_size, dtype=torch.long) % num_classes
+    z = torch.randn(args.batch_size, latent_dim)
+
+    encoder = Encoder(latent_dim=latent_dim, num_classes=num_classes)
+    decoder = Decoder(latent_dim=latent_dim, num_classes=num_classes)
+    vae = VAE(latent_dim=latent_dim, num_classes=num_classes)
 
     _print_summary("Encoder", _collect_layer_shapes(encoder, x, labels))
     _print_summary("Decoder", _collect_layer_shapes(decoder, z, labels))

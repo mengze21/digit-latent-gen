@@ -1,21 +1,29 @@
-import sys
+from pathlib import Path
 
 import torch
+import yaml
 
-sys.path.insert(0, "src")
+ROOT = Path(__file__).resolve().parents[1]
+CONFIG_PATH = ROOT / "configs" / "config.yaml"
+
+with CONFIG_PATH.open("r", encoding="utf-8") as config_file:
+    CONFIG = yaml.safe_load(config_file)
+
+MODEL_CONFIG = CONFIG["model"]
 
 from digit_latent_gen.models.vae import Decoder, Encoder, VAE
 
 
-LATENT_DIM = 20
-NUM_CLASSES = 10
+IN_CHANNELS = MODEL_CONFIG["in_channels"]
+LATENT_DIM = MODEL_CONFIG["latent_dim"]
+NUM_CLASSES = MODEL_CONFIG["num_classes"]
 BATCH_SIZE = 2
-HEIGHT = 32
-WIDTH = 32
+HEIGHT = MODEL_CONFIG["height"]
+WIDTH = MODEL_CONFIG["width"]
 
 
 def _dummy_inputs():
-    x = torch.randn(BATCH_SIZE, 1, HEIGHT, WIDTH)
+    x = torch.randn(BATCH_SIZE, IN_CHANNELS, HEIGHT, WIDTH)
     labels = torch.tensor([1, 7], dtype=torch.long)
     return x, labels
 
@@ -85,11 +93,11 @@ def test_decoder_layer_shapes():
     assert captured["dec_conv1"].shape == (BATCH_SIZE, 32, 16, 16), \
         f"dec_conv1 shape mismatch: expected {(BATCH_SIZE, 32, 16, 16)}, got {captured['dec_conv1'].shape}"
     
-    assert captured["dec_conv2"].shape == (BATCH_SIZE, 1, 32, 32), \
-        f"dec_conv2 shape mismatch: expected {(BATCH_SIZE, 1, 32, 32)}, got {captured['dec_conv2'].shape}"
+    assert captured["dec_conv2"].shape == (BATCH_SIZE, IN_CHANNELS, HEIGHT, WIDTH), \
+        f"dec_conv2 shape mismatch: expected {(BATCH_SIZE, IN_CHANNELS, HEIGHT, WIDTH)}, got {captured['dec_conv2'].shape}"
     
-    assert x_recon.shape == (BATCH_SIZE, 1, HEIGHT, WIDTH), \
-        f"x_recon shape mismatch: expected {(BATCH_SIZE, 1, HEIGHT, WIDTH)}, got {x_recon.shape}"
+    assert x_recon.shape == (BATCH_SIZE, IN_CHANNELS, HEIGHT, WIDTH), \
+        f"x_recon shape mismatch: expected {(BATCH_SIZE, IN_CHANNELS, HEIGHT, WIDTH)}, got {x_recon.shape}"
 
 
 def test_vae_end_to_end_shapes():
