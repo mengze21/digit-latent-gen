@@ -1,21 +1,109 @@
-import torch
 import sys
-sys.path.insert(0, 'src')
 
-from digit_latent_gen.models.vae import VAE  # Assume VAE is the main model class; please confirm the actual class name
+import torch
 
-def test_vae_forward_shape():
-    # Create dummy input: batch_size=2, channels=3, height=64, width=64
-    batch_size = 2
-    input_tensor = torch.randn(batch_size, 3, 64, 64)
+sys.path.insert(0, "src")
 
-    # Initialize model (adjust parameters according to your VAE __init__)
-    model = VAE(input_channels=3, latent_dim=128)
+from digit_latent_gen.models.vae import Decoder, Encoder, VAE
 
-    # Forward pass
-    output, mu, logvar = model(input_tensor)
 
-    # Assertions: output shape should match input
-    assert output.shape == input_tensor.shape, f"Expected shape {input_tensor.shape}, got {output.shape}"
-    assert mu.shape == (batch_size, 128), f"Expected mu shape (2, 128), got {mu.shape}"
-    assert logvar.shape == (batch_size, 128), f"Expected logvar shape (2, 128), got {logvar.shape}"
+LATENT_DIM = 20
+NUM_CLASSES = 10
+BATCH_SIZE = 2
+HEIGHT = 32
+WIDTH = 32
+
+
+def _dummy_inputs():
+    x = torch.randn(BATCH_SIZE, 1, HEIGHT, WIDTH)
+    labels = torch.tensor([1, 7], dtype=torch.long)
+    return x, labels
+
+
+def _capture_module_outputs(model, module_names, *inputs):
+    captured = {}
+    hooks = []
+
+    for name, module in model.named_modules():
+        if name in module_names:
+            hooks.append(module.register_forward_hook(lambda _, __, output, key=name: captured.setdefault(key, output)))
+
+    try:
+        model(*inputs)
+    finally:
+        for hook in hooks:
+            hook.remove()
+
+    return captured
+
+
+def test_encoder_layer_shapes():
+    x, labels = _dummy_inputs()
+    model = Encoder(latent_dim=LATENT_DIM, num_classes=NUM_CLASSES)
+
+    captured = _capture_module_outputs(model, {"label_emb", "enc_conv1", "enc_conv2", "fc_mu", "fc_logvar"}, x, labels)
+    mu, logvar = model(x, labels)
+
+    # Add detailed error messages
+    assert captured["label_emb"].shape == (BATCH_SIZE, NUM_CLASSES), \
+        f"label_emb shape mismatch: expected {(BATCH_SIZE, NUM_CLASSES)}, got {captured['label_emb'].shape}"
+    
+    assert captured["enc_conv1"].shape == (BATCH_SIZE, 32, 16, 16), \
+        f"enc_conv1 shape mismatch: expected {(BATCH_SIZE, 32, 16, 16)}, got {captured['enc_conv1'].shape}"
+    
+    assert captured["enc_conv2"].shape == (BATCH_SIZE, 64, 8, 8), \
+        f"enc_conv2 shape mismatch: expected {(BATCH_SIZE, 64, 8, 8)}, got {captured['enc_conv2'].shape}"
+    
+    assert captured["fc_mu"].shape == (BATCH_SIZE, LATENT_DIM), \
+        f"fc_mu shape mismatch: expected {(BATCH_SIZE, LATENT_DIM)}, got {captured['fc_mu'].shape}"
+    
+    assert captured["fc_logvar"].shape == (BATCH_SIZE, LATENT_DIM), \
+        f"fc_logvar shape mismatch: expected {(BATCH_SIZE, LATENT_DIM)}, got {captured['fc_logvar'].shape}"
+    
+    assert mu.shape == (BATCH_SIZE, LATENT_DIM), \
+        f"mu shape mismatch: expected {(BATCH_SIZE, LATENT_DIM)}, got {mu.shape}"
+    
+    assert logvar.shape == (BATCH_SIZE, LATENT_DIM), \
+        f"logvar shape mismatch: expected {(BATCH_SIZE, LATENT_DIM)}, got {logvar.shape}"
+
+
+def test_decoder_layer_shapes():
+    _, labels = _dummy_inputs()
+    z = torch.randn(BATCH_SIZE, LATENT_DIM)
+    model = Decoder(latent_dim=LATENT_DIM, num_classes=NUM_CLASSES)
+
+    captured = _capture_module_outputs(model, {"label_emb", "fc", "dec_conv1", "dec_conv2"}, z, labels)
+    x_recon = model(z, labels)
+
+    # Add detailed error messages
+    assert captured["label_emb"].shape == (BATCH_SIZE, NUM_CLASSES), \
+        f"label_emb shape mismatch: expected {(BATCH_SIZE, NUM_CLASSES)}, got {captured['label_emb'].shape}"
+    
+    assert captured["fc"].shape == (BATCH_SIZE, 64 * 8 * 8), \
+        f"fc shape mismatch: expected {(BATCH_SIZE, 64 * 8 * 8)}, got {captured['fc'].shape}"
+    
+    assert captured["dec_conv1"].shape == (BATCH_SIZE, 32, 16, 16), \
+        f"dec_conv1 shape mismatch: expected {(BATCH_SIZE, 32, 16, 16)}, got {captured['dec_conv1'].shape}"
+    
+    assert captured["dec_conv2"].shape == (BATCH_SIZE, 1, 32, 32), \
+        f"dec_conv2 shape mismatch: expected {(BATCH_SIZE, 1, 32, 32)}, got {captured['dec_conv2'].shape}"
+    
+    assert x_recon.shape == (BATCH_SIZE, 1, HEIGHT, WIDTH), \
+        f"x_recon shape mismatch: expected {(BATCH_SIZE, 1, HEIGHT, WIDTH)}, got {x_recon.shape}"
+
+
+def test_vae_end_to_end_shapes():
+    x, labels = _dummy_inputs()
+    model = VAE(latent_dim=LATENT_DIM, num_classes=NUM_CLASSES)
+
+    x_recon, mu, logvar = model(x, labels)
+
+    # Add detailed error messages
+    assert x_recon.shape == x.shape, \
+        f"x_recon shape mismatch: expected {x.shape}, got {x_recon.shape}"
+    
+    assert mu.shape == (BATCH_SIZE, LATENT_DIM), \
+        f"mu shape mismatch: expected {(BATCH_SIZE, LATENT_DIM)}, got {mu.shape}"
+    
+    assert logvar.shape == (BATCH_SIZE, LATENT_DIM), \
+        f"logvar shape mismatch: expected {(BATCH_SIZE, LATENT_DIM)}, got {logvar.shape}"
