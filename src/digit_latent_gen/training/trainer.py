@@ -33,18 +33,21 @@ class Trainer:
             
             self.optimizer.step()
         
-        return total_loss / len(self.train_loader)
+        return total_loss / len(self.train_loader.dataset)
     
     def compute_loss(self, data, recon, mu, logvar):
-        # Reconstruction loss
+        """Compute reconstruction loss and KL divergence separately."""
+        # Reconstruction loss (per sample)
         recon_loss = self.loss_fn(recon, data)
         
-        # KL divergence
+        # KL divergence (per sample)
+        # See Appendix B from VAE paper: https://arxiv.org/abs/1312.6114
         kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         
         return recon_loss + kl_loss
     
     def train(self, num_epochs):
+        print(f"Starting training for {num_epochs} epochs...")
         for epoch in range(1, num_epochs + 1):
             avg_loss = self.train_epoch()
             print(f"Epoch {epoch}/{num_epochs}, Loss: {avg_loss:.4f}")
