@@ -21,6 +21,13 @@ with CONFIG_PATH.open("r", encoding="utf-8") as config_file:
     CONFIG = yaml.safe_load(config_file)
 
 
+def _resolve_path(path_value):
+    path = Path(path_value)
+    if not path.is_absolute():
+        path = ROOT / path
+    return path
+
+
 @pytest.fixture
 def synthetic_dataset():
     """Create a small synthetic dataset for smoke testing."""
@@ -90,7 +97,10 @@ def test_visualization_generation(vae_model, synthetic_dataset, test_device):
     with torch.no_grad():
         recon, _, _ = vae_model(data, labels)
 
-    output_dir = ROOT / CONFIG["testing"]["output_dir"] / "smoke_visualizations"
+    base_output_dir = _resolve_path(
+        CONFIG.get("paths", {}).get("output_dir", CONFIG["testing"]["output_dir"])
+    )
+    output_dir = base_output_dir / "smoke_visualizations"
     output_dir.mkdir(parents=True, exist_ok=True)
     print(f"Visualization output directory: {output_dir}")
 

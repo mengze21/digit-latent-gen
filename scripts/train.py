@@ -1,6 +1,5 @@
 import argparse
 import logging
-import os
 from pathlib import Path
 
 import torch
@@ -30,8 +29,11 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=None, help="Override number of training epochs.")
     parser.add_argument("--learning-rate", type=float, default=None, help="Override optimizer learning rate.")
     parser.add_argument("--num-workers", type=int, default=None, help="Override dataloader worker count.")
-    parser.add_argument("--checkpoint-dir", type=str, default=None, help="Override checkpoint output directory.")
     parser.add_argument("--device", type=str, default=None, help="Force device: cpu, cuda, or mps.")
+    parser.add_argument("--data-dir", type=Path, default=None, help="Override dataset root directory.")
+    parser.add_argument("--output-dir", type=Path, default=None, help="Override output directory.")
+    parser.add_argument("--checkpoint-dir", type=Path, default=None, help="Override checkpoint directory.")
+    parser.add_argument("--log-dir", type=Path, default=None, help="Override log directory.")
     parser.add_argument(
         "--shuffle",
         action=argparse.BooleanOptionalAction,
@@ -53,9 +55,17 @@ def get_device(requested_device=None):
     return torch.device("cpu")
 
 
-def resolve_training_config(config, args):
+def resolve_path(path_value):
+    path = Path(path_value)
+    if not path.is_absolute():
+        path = ROOT / path
+    return path
+
+
+def resolve_runtime_config(config, args):
     model_config = config["model"].copy()
     train_config = config["training"].copy()
+    paths_config = config.get("paths", {}).copy()
 
     if args.batch_size is not None:
         train_config["batch_size"] = args.batch_size
@@ -65,46 +75,83 @@ def resolve_training_config(config, args):
         train_config["learning_rate"] = args.learning_rate
     if args.num_workers is not None:
         train_config["num_workers"] = args.num_workers
-    if args.checkpoint_dir is not None:
-        train_config["checkpoint_dir"] = args.checkpoint_dir
     if args.shuffle is not None:
         train_config["shuffle"] = args.shuffle
     if args.device is not None:
         train_config["device"] = args.device
+    if args.data_dir is not None:
+        paths_config["data_dir"] = str(args.data_dir)
+    if args.output_dir is not None:
+        paths_config["output_dir"] = str(args.output_dir)
+    if args.checkpoint_dir is not None:
+        paths_config["checkpoint_dir"] = str(args.checkpoint_dir)
+    if args.log_dir is not None:
+        paths_config["log_dir"] = str(args.log_dir)
 
-    return model_config, train_config
+    runtime_config = {
+        "model": model_config,
+        "training": train_config,
+        "paths": {
+            "data_dir": resolve_path(paths_config.get("data_dir", "data")),
+            "output_dir": resolve_path(paths_config.get("output_dir", "outputs")),
+            "checkpoint_dir": resolve_path(paths_config.get("checkpoint_dir", "checkpoints")),
+            "log_dir": resolve_path(paths_config.get("log_dir", "outputs/logs")),
+        },
+    }
+    return runtime_config
 
 
-def main():
+def setup_logging(log_file_path):
     logging.basicConfig(
         level=logging.INFO,
         format="[%(levelname)s] %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(log_file_path, encoding="utf-8"),
+        ],
     )
 
+
+def main():
     args = parse_args()
     config = load_config(args.config)
-    model_config, train_config = resolve_training_config(config, args)
-    data_config = config.get("data", {})
+    runtime_config = resolve_runtime_config(config, args)
+    model_config = runtime_config["model"]
+    train_config = runtime_config["training"]
+    paths_config = runtime_config["paths"]
 
     latent_dim = model_config["latent_dim"]
     num_classes = model_config["num_classes"]
-    data_root_dir = data_config.get("root_dir", "data")
     batch_size = train_config["batch_size"]
     num_epochs = train_config["epochs"]
     learning_rate = train_config["learning_rate"]
     shuffle = train_config.get("shuffle", True)
     num_workers = train_config.get("num_workers", 0)
-    checkpoint_dir = train_config.get("checkpoint_dir", "checkpoints")
+    checkpoint_name = train_config.get("checkpoint_name", "vae_model.pt")
+    latest_checkpoint_name = train_config.get("latest_checkpoint_name", "latest.pt")
+    log_filename = train_config.get("log_filename", "train.log")
+    data_dir = paths_config["data_dir"]
+    output_dir = paths_config["output_dir"]
+    checkpoint_dir = paths_config["checkpoint_dir"]
+    log_dir = paths_config["log_dir"]
     device = get_device(train_config.get("device"))
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file_path = log_dir / log_filename
+    setup_logging(log_file_path)
 
     LOGGER.info("Using device: %s", device)
     LOGGER.info("Model configuration: %s", model_config)
-    LOGGER.info("Data configuration: %s", data_config)
     LOGGER.info("Training configuration: %s", train_config)
+    LOGGER.info(
+        "Path configuration: %s",
+        {name: str(path) for name, path in paths_config.items()},
+    )
+    LOGGER.info("Logging to %s", log_file_path)
 
-    os.makedirs(checkpoint_dir, exist_ok=True)
-
-    train_dataset = get_mnist_dataset(train=True, root_dir=data_root_dir)
+    train_dataset = get_mnist_dataset(train=True, root_dir=str(data_dir))
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
@@ -124,11 +171,11 @@ def main():
     trainer.train(num_epochs)
     LOGGER.info("Training completed")
 
-    checkpoint_path = os.path.join(checkpoint_dir, "vae_model.pt")
+    checkpoint_path = checkpoint_dir / checkpoint_name
     torch.save(model.state_dict(), checkpoint_path)
     LOGGER.info("Model saved to %s", checkpoint_path)
 
-    latest_path = os.path.join(checkpoint_dir, "latest.pt")
+    latest_path = checkpoint_dir / latest_checkpoint_name
     torch.save(model.state_dict(), latest_path)
     LOGGER.info("Latest checkpoint saved to %s", latest_path)
 

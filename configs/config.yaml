@@ -7,8 +7,11 @@ model:
   latent_dim: 32
   num_classes: 10
 
-data:
-  root_dir: "data"
+paths:
+  data_dir: "data"
+  output_dir: "outputs"
+  checkpoint_dir: "checkpoints"
+  log_dir: "outputs/logs"
 
 training:
   batch_size: 32
@@ -17,7 +20,9 @@ training:
   kl_weight: 1.0
   shuffle: true
   num_workers: 0
-  checkpoint_dir: "checkpoints"
+  checkpoint_name: "vae_model.pt"
+  latest_checkpoint_name: "latest.pt"
+  log_filename: "train.log"
 
 testing:
   batch_size: 64
