@@ -77,6 +77,31 @@ If you are using Apple Silicon, install a PyTorch build that supports your macOS
 pip install -e .
 ```
 
+### Build Docker Development Image
+
+```bash
+docker build -f docker/Dockerfile.dev -t digit-latent-gen-dev .
+```
+
+### Build Docker GPU Training Image
+
+```bash
+docker build -f docker/Dockerfile.gpu -t digit-latent-gen-gpu .
+```
+
+Run training on a GPU host with mounted data, outputs, checkpoints, and configs:
+
+```bash
+docker run --gpus all --rm \
+  -v /path/to/data:/app/data \
+  -v /path/to/outputs:/app/outputs \
+  -v /path/to/checkpoints:/app/checkpoints \
+  -v /path/to/configs:/app/configs \
+  -w /app \
+  digit-latent-gen-gpu \
+  python scripts/train.py --config configs/config.yaml
+```
+
 ## Usage
 
 ### Train VAE Model

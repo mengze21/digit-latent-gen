@@ -1,0 +1,24 @@
+FROM pytorch/pytorch:2.7.0-cuda12.6-cudnn9-runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+# Copy packaging metadata first for better layer caching.
+COPY pyproject.toml README.md ./
+COPY src ./src
+
+# Install the project in editable mode with development extras.
+RUN pip install --no-cache-dir -e ".[dev]"
+
+# Copy the remaining project files used at runtime.
+COPY configs ./configs
+COPY scripts ./scripts
+COPY tests ./tests
+COPY docker ./docker
+
+# Prepare runtime directories expected by the config.
+RUN mkdir -p /app/data /app/outputs /app/checkpoints
+
+CMD ["python", "scripts/train.py", "--config", "configs/config.yaml"]
