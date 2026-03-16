@@ -2,7 +2,7 @@ import torch
 from torchvision import datasets, transforms
 
 
-def get_mnist_dataset(train=True):
+def get_mnist_dataset(train=True, root_dir="data"):
     transform = transforms.Compose([
         transforms.Resize((32, 32)),
         transforms.ToTensor(),
@@ -10,7 +10,7 @@ def get_mnist_dataset(train=True):
     ])
 
     return datasets.MNIST(
-        root='./data',
+        root=root_dir,
         train=train,
         download=True,
         transform=transform

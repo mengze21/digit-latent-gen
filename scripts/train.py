@@ -84,9 +84,11 @@ def main():
     args = parse_args()
     config = load_config(args.config)
     model_config, train_config = resolve_training_config(config, args)
+    data_config = config.get("data", {})
 
     latent_dim = model_config["latent_dim"]
     num_classes = model_config["num_classes"]
+    data_root_dir = data_config.get("root_dir", "data")
     batch_size = train_config["batch_size"]
     num_epochs = train_config["epochs"]
     learning_rate = train_config["learning_rate"]
@@ -97,11 +99,12 @@ def main():
 
     LOGGER.info("Using device: %s", device)
     LOGGER.info("Model configuration: %s", model_config)
+    LOGGER.info("Data configuration: %s", data_config)
     LOGGER.info("Training configuration: %s", train_config)
 
     os.makedirs(checkpoint_dir, exist_ok=True)
 
-    train_dataset = get_mnist_dataset(train=True)
+    train_dataset = get_mnist_dataset(train=True, root_dir=data_root_dir)
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
