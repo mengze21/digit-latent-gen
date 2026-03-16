@@ -1,0 +1,48 @@
+# Git and local tooling state
+.git
+.gitignore
+.aider*
+.aider.tags.cache.v4
+
+# Python caches and build artifacts
+__pycache__/
+*.py[cod]
+*.so
+.Python
+.pytest_cache/
+.mypy_cache/
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Editors and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
+*.log
+
+# Training data and generated artifacts
+data/
+checkpoints/
+outputs/*
+!outputs/.gitkeep
+logs/
+runs/
+results/
+experiments/
+
+# Optional local-only files
+.env
+.env.*
+*.local.*
