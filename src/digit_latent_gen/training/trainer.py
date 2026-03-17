@@ -26,6 +26,12 @@ class Trainer:
             
             # Compute loss
             loss = self.compute_loss(data, recon_batch, mu, logvar)
+
+            if torch.isnan(loss):
+                print("NaN detected!")
+                print("mu max:", mu.max(), "min:", mu.min())
+                print("logvar max:", logvar.max(), "min:", logvar.min())
+                break
             
             # Backward pass
             loss.backward()
