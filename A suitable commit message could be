@@ -1,0 +1,6 @@
+feat: add evaluation script for VAE model
+
+- Load trained VAE checkpoint
+- Evaluate on MNIST test set
+- Compute and log reconstruction and KL losses
+- Save sample reconstructions as PNG
