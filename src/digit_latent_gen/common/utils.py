@@ -5,8 +5,7 @@ from torchvision import datasets, transforms
 def get_mnist_dataset(train=True, root_dir="data"):
     transform = transforms.Compose([
         transforms.Resize((32, 32)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
+        transforms.ToTensor()
     ])
 
     return datasets.MNIST(
