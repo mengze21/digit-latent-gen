@@ -125,6 +125,7 @@ def main():
     batch_size = train_config["batch_size"]
     num_epochs = train_config["epochs"]
     learning_rate = train_config["learning_rate"]
+    kl_weight = train_config.get("kl_weight", 1.0)
     shuffle = train_config.get("shuffle", True)
     num_workers = train_config.get("num_workers", 0)
     checkpoint_name = train_config.get("checkpoint_name", "vae_model.pt")
@@ -165,6 +166,7 @@ def main():
         train_loader=train_loader,
         device=device,
         learning_rate=learning_rate,
+        kl_weight=kl_weight,
     )
 
     LOGGER.info("Starting training for %s epochs", num_epochs)
