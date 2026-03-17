@@ -36,6 +36,7 @@ def parse_args():
     parser.add_argument("--num-workers", type=int, default=None, help="Override dataloader worker count.")
     parser.add_argument("--device", type=str, default=None, help="Force device: cpu, cuda, or mps.")
     parser.add_argument("--output-dir", type=Path, default=None, help="Override evaluation output directory.")
+    parser.add_argument("--log-dir", type=Path, default=None, help="Override log directory.")
     parser.add_argument(
         "--save-reconstructions",
         action=argparse.BooleanOptionalAction,
@@ -63,8 +64,16 @@ def get_device(requested_device=None):
     return torch.device("cpu")
 
 
-def setup_logging():
-    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+def setup_logging(log_file_path):
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(levelname)s] %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(log_file_path, encoding="utf-8"),
+        ],
+        force=True,
+    )
 
 
 def log_config_section(title, config_dict):
@@ -90,6 +99,8 @@ def resolve_runtime_config(config, args):
         testing_config["checkpoint_path"] = str(args.checkpoint_path)
     if args.output_dir is not None:
         testing_config["output_dir"] = str(args.output_dir)
+    if args.log_dir is not None:
+        paths_config["log_dir"] = str(args.log_dir)
 
     runtime_config = {
         "model": model_config,
@@ -99,6 +110,7 @@ def resolve_runtime_config(config, args):
             "output_dir": resolve_path(
                 testing_config.get("output_dir", paths_config.get("output_dir", "outputs"))
             ),
+            "log_dir": resolve_path(paths_config.get("log_dir", "outputs/logs")),
         },
     }
     return runtime_config
@@ -136,7 +148,6 @@ def save_reconstruction_grid(inputs, reconstructions, labels, output_path):
 
 
 def main():
-    setup_logging()
     args = parse_args()
     config = load_config(args.config)
     runtime_config = resolve_runtime_config(config, args)
@@ -147,13 +158,20 @@ def main():
 
     checkpoint_path = resolve_path(testing_config.get("checkpoint_path", "checkpoints/latest.pt"))
     output_dir = paths_config["output_dir"] / "evaluation"
+    log_dir = paths_config["log_dir"]
+    log_filename = testing_config.get("log_filename", "evaluate.log")
+
     output_dir.mkdir(parents=True, exist_ok=True)
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file_path = log_dir / log_filename
+    setup_logging(log_file_path)
 
     batch_size = testing_config.get("batch_size", 64)
     num_workers = testing_config.get("num_workers", 0)
     save_reconstructions = testing_config.get("save_reconstructions", True)
     device = get_device(testing_config.get("device"))
 
+    LOGGER.info("Starting VAE evaluation")
     LOGGER.info("Using device: %s", device)
     log_config_section("Model configuration", model_config)
     log_config_section("Testing configuration", testing_config)
@@ -162,9 +180,11 @@ def main():
         {
             "data_dir": str(paths_config["data_dir"]),
             "output_dir": str(output_dir),
+            "log_dir": str(log_dir),
             "checkpoint_path": str(checkpoint_path),
         },
     )
+    LOGGER.info("Logging to %s", log_file_path)
 
     if not checkpoint_path.exists():
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
@@ -193,6 +213,7 @@ def main():
     sample_labels = None
     sample_reconstructions = None
 
+    LOGGER.info("Starting evaluation on test set...")
     with torch.no_grad():
         for batch_idx, (inputs, labels) in enumerate(test_loader):
             inputs = inputs.to(device)
@@ -211,11 +232,15 @@ def main():
                 sample_batch = inputs.cpu()
                 sample_labels = labels.cpu()
                 sample_reconstructions = reconstructions.cpu()
+            
+            if (batch_idx + 1) % 10 == 0:
+                LOGGER.info("Processed %d batches...", batch_idx + 1)
 
     avg_total_loss = total_loss / total_samples
     avg_recon_loss = total_recon_loss / total_samples
     avg_kl_loss = total_kl_loss / total_samples
 
+    LOGGER.info("Evaluation completed")
     LOGGER.info("Evaluation results")
     LOGGER.info("  %-*s : %.4f", CONFIG_KEY_WIDTH, "avg_total_loss", avg_total_loss)
     LOGGER.info("  %-*s : %.4f", CONFIG_KEY_WIDTH, "avg_recon_loss", avg_recon_loss)
@@ -226,6 +251,8 @@ def main():
         reconstruction_path = output_dir / "test_reconstructions.png"
         save_reconstruction_grid(sample_batch, sample_reconstructions, sample_labels, reconstruction_path)
         LOGGER.info("Saved reconstructions to %s", reconstruction_path)
+    
+    LOGGER.info("Evaluation finished successfully")
 
 
 if __name__ == "__main__":

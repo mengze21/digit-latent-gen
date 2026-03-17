@@ -30,3 +30,4 @@ testing:
   checkpoint_path: "checkpoints/latest.pt"
   save_reconstructions: true
   output_dir: "outputs"
+  log_filename: "evaluate.log"
