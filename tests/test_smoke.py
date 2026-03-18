@@ -85,6 +85,24 @@ def test_trainer_integration(vae_model, synthetic_dataset, test_device):
     assert not torch.isnan(torch.tensor(avg_loss))
 
 
+def test_trainer_cosine_scheduler_updates_learning_rate(vae_model, synthetic_dataset, test_device):
+    """Trainer should support cosine learning-rate scheduling."""
+    train_loader = DataLoader(synthetic_dataset, batch_size=8, shuffle=True)
+    trainer = Trainer(
+        model=vae_model,
+        train_loader=train_loader,
+        device=test_device,
+        learning_rate=1e-3,
+        scheduler_config={"type": "cosine", "t_max": 2, "eta_min": 0.0},
+    )
+
+    initial_lr = trainer.get_current_learning_rate()
+    trainer.train_epoch()
+    updated_lr = trainer.get_current_learning_rate()
+
+    assert updated_lr == pytest.approx(initial_lr * 0.5)
+
+
 def test_visualization_generation(vae_model, synthetic_dataset, test_device):
     """Smoke test visualization generation in the project outputs directory."""
     vae_model.to(test_device)

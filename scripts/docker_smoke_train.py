@@ -60,6 +60,7 @@ def main():
     device = torch.device(args.device)
     batch_size = training_config["batch_size"]
     learning_rate = training_config["learning_rate"]
+    scheduler_config = training_config.get("lr_scheduler")
 
     train_loader = build_synthetic_loader(model_config, batch_size, args.num_samples)
     model = VAE(
@@ -71,6 +72,7 @@ def main():
         train_loader=train_loader,
         device=device,
         learning_rate=learning_rate,
+        scheduler_config=scheduler_config,
     )
 
     print(f"Running Docker smoke training on {device} for 1 epoch")

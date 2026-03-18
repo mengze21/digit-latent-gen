@@ -18,6 +18,10 @@ training:
   epochs: 10
   learning_rate: 0.01
   kl_weight: 1.0
+  lr_scheduler:
+    type: "cosine"
+    t_max: 10
+    eta_min: 0.0001
   shuffle: true
   num_workers: 0
   checkpoint_name: "vae_model.pt"

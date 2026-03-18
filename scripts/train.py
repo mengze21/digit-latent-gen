@@ -126,6 +126,7 @@ def main():
     num_epochs = train_config["epochs"]
     learning_rate = train_config["learning_rate"]
     kl_weight = train_config.get("kl_weight", 1.0)
+    scheduler_config = train_config.get("lr_scheduler")
     shuffle = train_config.get("shuffle", True)
     num_workers = train_config.get("num_workers", 0)
     checkpoint_name = train_config.get("checkpoint_name", "vae_model.pt")
@@ -167,10 +168,20 @@ def main():
         device=device,
         learning_rate=learning_rate,
         kl_weight=kl_weight,
+        scheduler_config=scheduler_config,
     )
 
     LOGGER.info("Starting training for %s epochs", num_epochs)
-    trainer.train(num_epochs)
+    for epoch in range(1, num_epochs + 1):
+        avg_loss = trainer.train_epoch()
+        LOGGER.info(
+            "Epoch %s/%s | avg_loss: %.4f | lr: %.6f",
+            epoch,
+            num_epochs,
+            avg_loss,
+            trainer.get_current_learning_rate(),
+        )
+
     LOGGER.info("Training completed")
 
     checkpoint_path = checkpoint_dir / checkpoint_name

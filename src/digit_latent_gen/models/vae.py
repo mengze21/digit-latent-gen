@@ -86,8 +86,6 @@ class VAE(nn.Module):
 
     def forward(self, x, labels):
         mu, logvar = self.encoder(x, labels)
-        # Clamp before sampling so extreme log-variance values do not destabilize z.
-        logvar = torch.clamp(logvar, -10, 10)
         z = self.reparameterize(mu, logvar)
         x_recon = self.decoder(z, labels)
         return x_recon, mu, logvar
