@@ -1,214 +1,158 @@
 # Digit Latent Generation
 
-This project implements Variational Autoencoder (VAE) for digit generation and latent space exploration.
-
-## Overview
-
-This project provides implementations of:
-- **Variational Autoencoder (VAE)** - For learning latent representations of MNIST digits
-- **Latent space visualization and manipulation**
-## Features
-
-- MNIST dataset support with automatic download
-- Conditional VAE with class labels
-- Training and inference pipelines
-- Checkpoint saving and loading
-- Utility functions for dataset statistics computation
-
-## Project Structure
-# Digit Latent Generation
-
-This project implements Variational Autoencoder (VAE) for digit generation and latent space exploration.
-
-## Overview
-
-This project provides implementations of:
-- **Variational Autoencoder (VAE)** - For learning latent representations of MNIST digits
-- **Latent space visualization and manipulation**
+This project implements a conditional Variational Autoencoder (VAE) for MNIST digit generation and latent space exploration.
 
 ## Features
 
 - MNIST dataset support with automatic download
 - Conditional VAE with class labels
-- Training and inference pipelines
+- Training, evaluation, and generation pipelines
 - Checkpoint saving and loading
-- Utility functions for dataset statistics computation
+- Streamlit UI for label-conditioned digit generation
 
 ## Project Structure
 
-```
+```text
 digit-latent-gen/
 ├── configs/
-│   └── config.yaml          # Configuration file for VAE
-├── src/
-│   └── digit_latent_gen/
-│       ├── models/          # Model implementations
-│       │   └── vae.py       # VAE model implementation
-│       ├── training/        # Training pipeline
-│       ├── inference/       # Inference pipeline
-│       ├── common/          # Common utilities
-│       │   └── utils.py     # Dataset utilities
-│       └── data/            # Data loading modules
+│   ├── config.yaml
+│   └── generate_config.yaml
 ├── scripts/
-│   ├── train.py             # Training script for VAE
-│   └── show_vae_structure.py # VAE structure visualization
-├── tests/                   # Test files
-├── requirements.txt         # Python dependencies
-└── pyproject.toml          # Project configuration
+│   ├── train.py
+│   ├── evaluate.py
+│   ├── generate.py
+│   └── show_vae_structure.py
+├── src/digit_latent_gen/
+│   ├── models/vae.py
+│   ├── training/trainer.py
+│   ├── inference/generator.py
+│   └── common/utils.py
+├── streamlit_app.py
+├── tests/
+└── pyproject.toml
 ```
 
 ## Installation
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd digit-latent-gen
-```
+Install PyTorch first, then install the project in editable mode.
 
-2. Install core dependencies first, especially PyTorch and torchvision:
 ```bash
 pip install "torch==2.7.0" "torchvision==0.22.0"
-```
-
-If you are using Apple Silicon, install a PyTorch build that supports your macOS environment and MPS setup before running the editable install. The current `conda mps` environment uses `torch==2.7.0` and `torchvision==0.22.0`. See the [official PyTorch installation guide](https://pytorch.org/get-started/locally/) for the recommended command for your setup.
-
-3. Install the project in editable mode:
-```bash
 pip install -e .
 ```
 
-### Build Docker Development Image
+If you are using Apple Silicon, use a PyTorch build compatible with your MPS environment.
 
-```bash
-docker build -f docker/Dockerfile.dev -t digit-latent-gen-dev .
-```
+## Training
 
-### Build Docker GPU Training Image
-
-```bash
-docker build -f docker/Dockerfile.gpu -t digit-latent-gen-gpu .
-```
-
-Run training on a GPU host with mounted data, outputs, checkpoints, and configs:
-
-```bash
-docker run --gpus all --rm \
-  -v /path/to/data:/app/data \
-  -v /path/to/outputs:/app/outputs \
-  -v /path/to/checkpoints:/app/checkpoints \
-  -v /path/to/configs:/app/configs \
-  -w /app \
-  digit-latent-gen-gpu \
-  python scripts/train.py --config configs/config.yaml
-```
-
-## Usage
-
-### Train VAE Model
+Train the VAE with the default configuration:
 
 ```bash
 python scripts/train.py
 ```
 
-This will:
-# MNIST Digit Latent Space Generator
-
-A PyTorch-based Variational Autoencoder (VAE) for generating and exploring MNIST digit latent spaces.
-
-## Setup
-
-### Prerequisites
-- Python 3.8+
-- PyTorch 1.9+
-
-### Installation
-- Train a VAE model with parameters from `configs/config.yaml`
-- Save checkpoints to `checkpoints/` directory
-
-You can also override training parameters from the command line. For example:
+You can override selected options from the command line:
 
 ```bash
 python scripts/train.py --batch-size 64 --epochs 20 --learning-rate 0.001
 ```
 
-### Configuration
+To enable the configured learning-rate scheduler explicitly:
 
-Edit `configs/config.yaml` to customize training parameters:
+```bash
+python scripts/train.py --use-scheduler
+```
+
+The default configuration keeps scheduler disabled, but the `lr_scheduler` block remains in `configs/config.yaml` so it can be turned on later.
+The generation and deployment defaults live in `configs/generate_config.yaml`, separate from the training config.
+
+## Generation
+
+Generate digit images from a trained checkpoint with a digit label from `0` to `9`:
+
+```bash
+python scripts/generate.py --label 7 --num-samples 4
+```
+
+Useful options:
+
+- `--checkpoint-path`: override the checkpoint location
+- `--output-path`: save the generated grid to a specific file
+- `--device`: force `cpu`, `cuda`, or `mps`
+
+By default, generation uses `checkpoints/latest.pt`.
+The generation script reads `configs/generate_config.yaml` by default.
+
+## Streamlit App
+
+Launch the browser UI:
+
+```bash
+streamlit run streamlit_app.py
+```
+
+The app lets you:
+
+- choose a digit label from `0` to `9`
+- select the number of images to generate
+- choose the checkpoint path and device
+- view the generated digit images directly in the browser
+The app also reads `configs/generate_config.yaml` by default.
+
+## Evaluation
+
+Evaluate a trained checkpoint on MNIST test data:
+
+```bash
+python scripts/evaluate.py
+```
+
+## Configuration
+
+Edit `configs/config.yaml` to customize training behavior.
 
 ```yaml
 model:
-  in_channels: 1           # Grayscale images
-  height: 32               # Image height
-  width: 32                # Image width  
-  latent_dim: 32           # Latent space dimension
-  num_classes: 10          # MNIST digits (0-9)
+  in_channels: 1
+  height: 32
+  width: 32
+  latent_dim: 32
+  num_classes: 10
 
 training:
-  batch_size: 64           # Training batch size
-  epochs: 20               # Number of training epochs
-  learning_rate: 0.001     # Learning rate
-  weight_decay: 0.0        # L2 regularization
-  kl_weight: 1.0           # KL divergence weight
-  device: "cpu"            # "cpu" or "cuda"
-  checkpoint_dir: "checkpoints"  # Directory for saving models
+  batch_size: 32
+  epochs: 10
+  learning_rate: 0.001
+  kl_weight: 0.1
+  use_scheduler: false
+  lr_scheduler:
+    type: "cosine"
+    t_max: 10
+    eta_min: 0.0001
 ```
 
-### Code Examples
+Edit `configs/generate_config.yaml` to customize inference and deployment defaults.
 
-#### Load and Train VAE
+```yaml
+model:
+  latent_dim: 32
+  num_classes: 10
 
-```python
-import torch
-from torch.utils.data import DataLoader
-from digit_latent_gen.models.vae import VAE
-from digit_latent_gen.training.trainer import Trainer
-from digit_latent_gen.common.utils import get_mnist_dataset
-
-# Load dataset
-train_dataset = get_mnist_dataset(train=True)
-train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-
-# Initialize model
-model = VAE(latent_dim=32)
-
-# Initialize trainer
-trainer = Trainer(
-    model=model,
-    train_loader=train_loader,
-    learning_rate=0.001
-)
-
-# Train model
-trainer.train(num_epochs=20)
-```
-
-#### Compute Dataset Statistics
-
-```python
-from digit_latent_gen.common.utils import get_mnist_dataset, compute_dataset_stats
-
-# Get dataset
-dataset = get_mnist_dataset(train=True)
-
-# Compute mean and std
-mean, std = compute_dataset_stats(dataset, batch_size=128)
-print(f"Dataset mean: {mean}, std: {std}")
+generation:
+  checkpoint_path: "checkpoints/latest.pt"
+  output_dir: "outputs/generated"
+  default_num_samples: 4
+  default_label: 0
+  default_device: "auto"
 ```
 
 ## Development
 
-### Running Tests
+Run tests with:
 
 ```bash
 python -m pytest tests/
 ```
-
-### Code Structure
-
-- `src/digit_latent_gen/models/vae.py`: VAE model implementation with Encoder and Decoder
-- `src/digit_latent_gen/training/trainer.py`: Training loop and loss computation
-- `src/digit_latent_gen/common/utils.py`: Utility functions for dataset handling
-- `scripts/train.py`: Main training script
 
 ## License
 
