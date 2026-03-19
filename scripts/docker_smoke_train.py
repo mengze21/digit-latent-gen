@@ -10,7 +10,7 @@ from digit_latent_gen.training.trainer import Trainer
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CONFIG_PATH = ROOT / "configs" / "config.yaml"
+DEFAULT_CONFIG_PATH = ROOT / "configs" / "vae_config.yaml"
 
 
 def load_config(config_path):
