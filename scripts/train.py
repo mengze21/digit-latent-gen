@@ -30,6 +30,12 @@ def parse_args():
     parser.add_argument("--learning-rate", type=float, default=None, help="Override optimizer learning rate.")
     parser.add_argument("--num-workers", type=int, default=None, help="Override dataloader worker count.")
     parser.add_argument("--device", type=str, default=None, help="Force device: cpu, cuda, or mps.")
+    parser.add_argument(
+        "--use-scheduler",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Enable or disable the configured learning-rate scheduler.",
+    )
     parser.add_argument("--data-dir", type=Path, default=None, help="Override dataset root directory.")
     parser.add_argument("--output-dir", type=Path, default=None, help="Override output directory.")
     parser.add_argument("--checkpoint-dir", type=Path, default=None, help="Override checkpoint directory.")
@@ -75,6 +81,8 @@ def resolve_runtime_config(config, args):
         train_config["learning_rate"] = args.learning_rate
     if args.num_workers is not None:
         train_config["num_workers"] = args.num_workers
+    if args.use_scheduler is not None:
+        train_config["use_scheduler"] = args.use_scheduler
     if args.shuffle is not None:
         train_config["shuffle"] = args.shuffle
     if args.device is not None:
@@ -112,6 +120,18 @@ def setup_logging(log_file_path):
     )
 
 
+def log_epoch_metrics(epoch, metrics, current_lr, num_epochs):
+    LOGGER.info(
+        "Epoch %s/%s | avg_loss: %.4f | avg_recon_loss: %.4f | avg_kl_loss: %.4f | lr: %.6f",
+        epoch,
+        num_epochs,
+        metrics["avg_loss"],
+        metrics["avg_recon_loss"],
+        metrics["avg_kl_loss"],
+        current_lr,
+    )
+
+
 def main():
     args = parse_args()
     config = load_config(args.config)
@@ -126,7 +146,7 @@ def main():
     num_epochs = train_config["epochs"]
     learning_rate = train_config["learning_rate"]
     kl_weight = train_config.get("kl_weight", 1.0)
-    scheduler_config = train_config.get("lr_scheduler")
+    scheduler_config = train_config.get("lr_scheduler") if train_config.get("use_scheduler", False) else None
     shuffle = train_config.get("shuffle", True)
     num_workers = train_config.get("num_workers", 0)
     checkpoint_name = train_config.get("checkpoint_name", "vae_model.pt")
@@ -172,15 +192,10 @@ def main():
     )
 
     LOGGER.info("Starting training for %s epochs", num_epochs)
-    for epoch in range(1, num_epochs + 1):
-        avg_loss = trainer.train_epoch()
-        LOGGER.info(
-            "Epoch %s/%s | avg_loss: %.4f | lr: %.6f",
-            epoch,
-            num_epochs,
-            avg_loss,
-            trainer.get_current_learning_rate(),
-        )
+    def on_epoch_end(epoch, metrics, current_lr):
+        log_epoch_metrics(epoch, metrics, current_lr, num_epochs)
+
+    trainer.train(num_epochs, epoch_end_callback=on_epoch_end)
 
     LOGGER.info("Training completed")
 
