@@ -79,10 +79,12 @@ def test_trainer_integration(vae_model, synthetic_dataset, test_device):
         learning_rate=1e-3,
     )
 
-    avg_loss = trainer.train_epoch()
-    assert isinstance(avg_loss, float)
-    assert avg_loss > 0
-    assert not torch.isnan(torch.tensor(avg_loss))
+    metrics = trainer.train_epoch()
+    assert isinstance(metrics, dict)
+    assert metrics["avg_loss"] > 0
+    assert metrics["avg_recon_loss"] > 0
+    assert metrics["avg_kl_loss"] >= 0
+    assert not torch.isnan(torch.tensor(metrics["avg_loss"]))
 
 
 def test_trainer_cosine_scheduler_updates_learning_rate(vae_model, synthetic_dataset, test_device):

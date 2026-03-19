@@ -76,8 +76,12 @@ def main():
     )
 
     print(f"Running Docker smoke training on {device} for 1 epoch")
-    avg_loss = trainer.train_epoch()
-    print(f"Smoke training loss: {avg_loss:.4f}")
+    metrics = trainer.train_epoch()
+    print(
+        "Smoke training loss: "
+        f"{metrics['avg_loss']:.4f} "
+        f"(recon={metrics['avg_recon_loss']:.4f}, kl={metrics['avg_kl_loss']:.4f})"
+    )
 
     checkpoint_path = checkpoint_dir / "docker_smoke_vae.pt"
     torch.save(model.state_dict(), checkpoint_path)
