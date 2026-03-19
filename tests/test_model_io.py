@@ -4,7 +4,7 @@ import torch
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIG_PATH = ROOT / "configs" / "config.yaml"
+CONFIG_PATH = ROOT / "configs" / "vae_config.yaml"
 
 with CONFIG_PATH.open("r", encoding="utf-8") as config_file:
     CONFIG = yaml.safe_load(config_file)
