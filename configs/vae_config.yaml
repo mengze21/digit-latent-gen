@@ -1,0 +1,38 @@
+# Configuration for VAE model training and evaluation.
+
+model:
+  in_channels: 1
+  height: 32
+  width: 32
+  latent_dim: 32
+  num_classes: 10
+
+paths:
+  data_dir: "data"
+  output_dir: "outputs"
+  checkpoint_dir: "checkpoints"
+  log_dir: "outputs/logs"
+
+training:
+  batch_size: 32
+  epochs: 10
+  learning_rate: 0.001
+  kl_weight: 0.1
+  use_scheduler: false
+  lr_scheduler:
+    type: "cosine"
+    t_max: 10
+    eta_min: 0.0001
+  shuffle: true
+  num_workers: 0
+  checkpoint_name: "vae_model.pt"
+  latest_checkpoint_name: "latest.pt"
+  log_filename: "train.log"
+
+testing:
+  batch_size: 64
+  num_workers: 0
+  checkpoint_path: "checkpoints/latest.pt"
+  save_reconstructions: true
+  output_dir: "outputs"
+  log_filename: "evaluate.log"
