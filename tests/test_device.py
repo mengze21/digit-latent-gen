@@ -104,7 +104,7 @@ def main():
     
     try:
         import yaml
-        config_path = "configs/config.yaml"
+        config_path = "configs/vae_config.yaml"
         
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
@@ -141,7 +141,7 @@ def main():
     print("Summary")
     print("=" * 60)
     print("To change device in training:")
-    print("1. Edit configs/config.yaml")
+    print("1. Edit configs/vae_config.yaml")
     print("2. Set 'device' under 'training' section to:")
     print("   - 'cuda' for NVIDIA GPU")
     print("   - 'mps' for Apple Silicon")

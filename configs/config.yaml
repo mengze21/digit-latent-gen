@@ -1,4 +1,5 @@
-# Configuration for VAE model, training, and testing.
+# Legacy combined config kept for backward compatibility.
+# Prefer `configs/vae_config.yaml` and `configs/diffusion_config.yaml`.
 
 model:
   in_channels: 1
@@ -16,8 +17,9 @@ paths:
 training:
   batch_size: 32
   epochs: 10
-  learning_rate: 0.01
-  kl_weight: 1.0
+  learning_rate: 0.001
+  kl_weight: 0.1
+  use_scheduler: false
   lr_scheduler:
     type: "cosine"
     t_max: 10
@@ -27,6 +29,24 @@ training:
   checkpoint_name: "vae_model.pt"
   latest_checkpoint_name: "latest.pt"
   log_filename: "train.log"
+
+diffusion:
+  batch_size: 32
+  epochs: 10
+  learning_rate: 0.0001
+  time_steps: 1000
+  latent_dim: 32
+  vae_checkpoint_path: "checkpoints/latest.pt"
+  hidden_dim: null
+  num_layers: 4
+  grad_clip_norm: null
+  checkpoint_name: "diffusion_model.pt"
+  latest_checkpoint_name: "latest_diffusion.pt"
+  log_filename: "diffusion_train.log"
+  lr_scheduler:
+    type: "cosine"
+    t_max: 10
+    eta_min: 0.00001
 
 testing:
   batch_size: 64
