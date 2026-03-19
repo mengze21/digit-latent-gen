@@ -16,7 +16,7 @@ from digit_latent_gen.models.vae import VAE
 LabelInput = Union[int, Sequence[int], torch.Tensor]
 
 
-class Generator:
+class VAEGenerator:
     """Generate digit images from a trained conditional VAE.
 
     The current model is label-conditioned, so generation from a digit label
@@ -51,6 +51,38 @@ class Generator:
                 return checkpoint["state_dict"]
         return checkpoint
 
+    def _load_compatible_state_dict(self, model: VAE, checkpoint) -> None:
+        state_dict = self._extract_state_dict(checkpoint)
+        if not isinstance(state_dict, dict):
+            raise TypeError("Checkpoint does not contain a valid state dict.")
+
+        model_state = model.state_dict()
+        cleaned_state = {}
+        for key, value in state_dict.items():
+            cleaned_key = key.removeprefix("module.")
+            if cleaned_key in model_state and model_state[cleaned_key].shape == value.shape:
+                cleaned_state[cleaned_key] = value
+
+        diffusion_keys = ("denoiser.", "betas", "alphas", "posterior_variance", "sqrt_alphas_cumprod")
+        if any(key.startswith(diffusion_keys) or key in diffusion_keys for key in state_dict.keys()):
+            raise ValueError(
+                "The provided checkpoint looks like a diffusion checkpoint, but Generator expects a VAE checkpoint."
+            )
+
+        loaded_ratio = len(cleaned_state) / max(len(model_state), 1)
+        if loaded_ratio < 0.9:
+            raise ValueError(
+                "Checkpoint does not match the VAE architecture closely enough to load safely. "
+                "Make sure you are passing a VAE checkpoint, not a diffusion checkpoint."
+            )
+
+        missing, unexpected = model.load_state_dict(cleaned_state, strict=False)
+        if missing or unexpected:
+            raise ValueError(
+                "Checkpoint partially matched the VAE architecture but still left missing or unexpected keys. "
+                "Please verify that the checkpoint was saved from the current VAE model."
+            )
+
     def _load_model(self) -> VAE:
         if self._model is not None:
             return self._model
@@ -60,7 +92,7 @@ class Generator:
 
         model = VAE(latent_dim=self.latent_dim, num_classes=self.num_classes).to(self.device)
         checkpoint = torch.load(self.model_path, map_location=self.device)
-        model.load_state_dict(self._extract_state_dict(checkpoint))
+        self._load_compatible_state_dict(model, checkpoint)
         model.eval()
         self._model = model
         return model
@@ -157,3 +189,7 @@ class Generator:
     ) -> Path:
         images = self.generate(num_samples=num_samples, label=label)
         return self.save_generated_images(images, output_path=output_path, max_images=max_images)
+
+
+# Backward-compatible alias for older imports.
+Generator = VAEGenerator
