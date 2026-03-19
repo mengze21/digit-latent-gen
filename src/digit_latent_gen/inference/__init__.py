@@ -1,3 +1,4 @@
-from .generator import Generator
+from .generator import Generator, VAEGenerator
+from .diffusion_generator import DiffusionGenerator
 
-__all__ = ["Generator"]
+__all__ = ["Generator", "VAEGenerator", "DiffusionGenerator"]

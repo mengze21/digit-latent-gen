@@ -1,0 +1,50 @@
+# Configuration for latent diffusion training.
+
+model:
+  in_channels: 1
+  height: 32
+  width: 32
+  latent_dim: 32
+  num_classes: 10
+
+paths:
+  data_dir: "data"
+  output_dir: "outputs"
+  checkpoint_dir: "checkpoints"
+  log_dir: "outputs/logs"
+
+training:
+  batch_size: 32
+  epochs: 10
+  learning_rate: 0.001
+  time_steps: 1000
+  latent_dim: 32
+  vae_checkpoint_path: "checkpoints/latest.pt"
+  hidden_dim: null
+  num_layers: 4
+  grad_clip_norm: null
+  checkpoint_name: "diffusion_model.pt"
+  latest_checkpoint_name: "latest_diffusion.pt"
+  log_filename: "diffusion_train.log"
+  lr_scheduler:
+    type: "cosine"
+    t_max: 10
+    eta_min: 0.00001
+
+evaluation:
+  batch_size: 632
+  num_workers: 0
+  vae_checkpoint_path: "checkpoints/latest.pt"
+  diffusion_checkpoint_path: "checkpoints/latest_diffusion.pt"
+  output_dir: "outputs"
+  log_filename: "evaluate_diffusion.log"
+  save_generated_samples: true
+  num_generated_samples: 16
+
+generation:
+  vae_checkpoint_path: "checkpoints/latest.pt"
+  diffusion_checkpoint_path: "checkpoints/latest_diffusion.pt"
+  output_dir: "outputs/generated"
+  default_num_samples: 4
+  default_label: 0
+  default_device: "auto"

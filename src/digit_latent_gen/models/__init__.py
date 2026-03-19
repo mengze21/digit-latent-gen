@@ -1,4 +1,21 @@
 from .vae import VAE, Encoder, Decoder
-from .diffusion import DiffusionModel, UNet, SinusoidalPositionEmbeddings, Block
+from .diffusion import (
+    DiffusionModel,
+    LatentDenoiser,
+    LatentResidualBlock,
+    SinusoidalPositionEmbeddings,
+    UNet,
+    Block,
+)
 
-__all__ = ['VAE', 'Encoder', 'Decoder', 'DiffusionModel', 'UNet', 'SinusoidalPositionEmbeddings', 'Block']
+__all__ = [
+    'VAE',
+    'Encoder',
+    'Decoder',
+    'DiffusionModel',
+    'LatentDenoiser',
+    'LatentResidualBlock',
+    'UNet',
+    'SinusoidalPositionEmbeddings',
+    'Block',
+]
