@@ -5,7 +5,7 @@ import torch
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIG_PATH = ROOT / "configs" / "config.yaml"
+CONFIG_PATH = ROOT / "configs" / "vae_config.yaml"
 try:
     from digit_latent_gen.models.vae import Decoder, Encoder, VAE
 except ModuleNotFoundError as exc:
