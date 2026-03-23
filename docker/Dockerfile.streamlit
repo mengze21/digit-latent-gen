@@ -3,7 +3,10 @@ FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONFAULTHANDLER=1
+    PYTHONFAULTHANDLER=1 \
+    HOME=/home/appuser \
+    XDG_CACHE_HOME=/home/appuser/.cache \
+    MPLCONFIGDIR=/home/appuser/.config/matplotlib
 
 WORKDIR /app
 
@@ -28,12 +31,12 @@ COPY streamlit_app.py ./
 # Install the project in production mode
 RUN pip install --no-cache-dir .
 
-# Create non-root user for security
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+# Create non-root user with a real home directory
+RUN groupadd -r appuser && useradd -m -r -g appuser -d /home/appuser appuser
 
 # Create runtime directories with proper permissions
-RUN mkdir -p /app/data /app/outputs /app/checkpoints && \
-    chown -R appuser:appuser /app
+RUN mkdir -p /app/data /app/outputs /app/checkpoints /home/appuser/.config/matplotlib /home/appuser/.cache && \
+    chown -R appuser:appuser /app /home/appuser
 
 # Checkpoints and outputs are intended to be mounted at runtime.
 VOLUME ["/app/checkpoints", "/app/outputs"]
