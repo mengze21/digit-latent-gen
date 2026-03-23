@@ -136,8 +136,13 @@ docker build -f docker/Dockerfile.streamlit -t digit-latent-gen-streamlit .
 Run the container and expose the app on port `8501`:
 
 ```bash
-docker run --rm -p 8501:8501 digit-latent-gen-streamlit
+docker run --rm -p 8501:8501 \
+  -v /path/to/checkpoints:/app/checkpoints \
+  -v /path/to/outputs:/app/outputs \
+  digit-latent-gen-streamlit
 ```
+
+The app reads checkpoints from `/app/checkpoints` by default, so mount your trained `vae_model.pt` and `latest_diffusion.pt` there before starting the container.
 
 ## Evaluation
 

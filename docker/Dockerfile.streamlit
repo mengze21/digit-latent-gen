@@ -21,8 +21,8 @@ RUN pip install --no-cache-dir \
 # Copy packaging metadata first for better layer caching.
 COPY pyproject.toml README.md ./
 COPY src ./src
-COPY configs ./configs
-COPY scripts ./scripts
+COPY configs/generate_config.yaml ./configs/generate_config.yaml
+COPY configs/diffusion_config.yaml ./configs/diffusion_config.yaml
 COPY streamlit_app.py ./
 
 # Install the project in production mode
@@ -34,6 +34,9 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 # Create runtime directories with proper permissions
 RUN mkdir -p /app/data /app/outputs /app/checkpoints && \
     chown -R appuser:appuser /app
+
+# Checkpoints and outputs are intended to be mounted at runtime.
+VOLUME ["/app/checkpoints", "/app/outputs"]
 
 # Switch to non-root user for security
 USER appuser
