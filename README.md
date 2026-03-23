@@ -33,6 +33,8 @@ digit-latent-gen/
 │   ├── training/trainer.py
 │   ├── inference/generator.py
 │   └── common/utils.py
+├── docker/
+│   └── Dockerfile.streamlit
 ├── streamlit_app.py
 ├── tests/
 └── pyproject.toml
@@ -122,6 +124,20 @@ The app lets you:
 - view the generated digit images directly in the browser
 
 The app reads `configs/generate_config.yaml` for the VAE mode and `configs/diffusion_config.yaml` for the latent diffusion mode by default.
+
+## Docker Deployment
+
+Build the Streamlit deployment image:
+
+```bash
+docker build -f docker/Dockerfile.streamlit -t digit-latent-gen-streamlit .
+```
+
+Run the container and expose the app on port `8501`:
+
+```bash
+docker run --rm -p 8501:8501 digit-latent-gen-streamlit
+```
 
 ## Evaluation
 
