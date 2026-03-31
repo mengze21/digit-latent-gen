@@ -1,0 +1,12 @@
+# Configuration for digit generation and Streamlit deployment.
+
+model:
+  latent_dim: 32
+  num_classes: 10
+
+generation:
+  checkpoint_path: "checkpoints/latest.pt"
+  output_dir: "outputs/generated"
+  default_num_samples: 4
+  default_label: 0
+  default_device: "auto"

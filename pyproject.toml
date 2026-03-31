@@ -7,7 +7,7 @@ name = "digit-latent-gen"
 version = "0.1.0"
 description = "Digit latent generation model implementation"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "numpy",
     "pandas",
@@ -33,3 +33,15 @@ dev = [
     "black>=23.0",
     "mypy>=1.0"
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src", "tests", "scripts", "streamlit_app.py"]
+disable_error_code = ["import-untyped"]
+
+[[tool.mypy.overrides]]
+module = ["yaml", "tqdm", "torchvision", "torchvision.*"]
+ignore_missing_imports = true

@@ -43,6 +43,8 @@ Thumbs.db
 logs/
 runs/
 output/
+outputs/*
+!outputs/.gitkeep
 results/
 experiments/
 data/

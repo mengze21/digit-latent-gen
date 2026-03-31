@@ -10,37 +10,39 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import torch
 
+from digit_latent_gen.models.diffusion import DiffusionModel
 from digit_latent_gen.models.vae import VAE
 
 LabelInput = Union[int, Sequence[int], torch.Tensor]
 
 
-class VAEGenerator:
-    """Generate digit images from a trained conditional VAE.
-
-    The current model is label-conditioned, so generation from a digit label
-    works by sampling a latent vector from N(0, I) and passing the latent
-    sample together with the requested label(s) to the decoder.
-    """
+class DiffusionGenerator:
+    """Generate digit images with a latent diffusion model plus a VAE decoder."""
 
     def __init__(
         self,
         latent_dim: int,
         label: LabelInput,
         num_classes: int,
-        model_path: Union[str, Path],
+        vae_checkpoint_path: Union[str, Path],
+        diffusion_checkpoint_path: Union[str, Path],
         output_dir: Union[str, Path],
         batch_size: int = 1,
         device: Union[str, torch.device] = "cpu",
+        diffusion_config: Optional[dict] = None,
     ):
         self.latent_dim = latent_dim
         self.label = label
         self.num_classes = num_classes
-        self.model_path = Path(model_path)
+        self.vae_checkpoint_path = Path(vae_checkpoint_path)
+        self.diffusion_checkpoint_path = Path(diffusion_checkpoint_path)
         self.output_dir = Path(output_dir)
         self.batch_size = batch_size
         self.device = torch.device(device)
-        self._model: Optional[VAE] = None
+        self.diffusion_config = diffusion_config or {}
+
+        self._vae: Optional[VAE] = None
+        self._diffusion: Optional[DiffusionModel] = None
 
     def _extract_state_dict(self, checkpoint):
         if isinstance(checkpoint, dict):
@@ -50,7 +52,7 @@ class VAEGenerator:
                 return checkpoint["state_dict"]
         return checkpoint
 
-    def _load_compatible_state_dict(self, model: VAE, checkpoint) -> None:
+    def _load_compatible_state_dict(self, model, checkpoint) -> None:
         state_dict = self._extract_state_dict(checkpoint)
         if not isinstance(state_dict, dict):
             raise TypeError("Checkpoint does not contain a valid state dict.")
@@ -65,49 +67,54 @@ class VAEGenerator:
             ):
                 cleaned_state[cleaned_key] = value
 
-        diffusion_keys = (
-            "denoiser.",
-            "betas",
-            "alphas",
-            "posterior_variance",
-            "sqrt_alphas_cumprod",
-        )
-        if any(
-            key.startswith(diffusion_keys) or key in diffusion_keys
-            for key in state_dict.keys()
-        ):
-            raise ValueError(
-                "The provided checkpoint looks like a diffusion checkpoint, but Generator expects a VAE checkpoint."
-            )
-
-        loaded_ratio = len(cleaned_state) / max(len(model_state), 1)
-        if loaded_ratio < 0.9:
-            raise ValueError(
-                "Checkpoint does not match the VAE architecture closely enough to load safely. "
-                "Make sure you are passing a VAE checkpoint, not a diffusion checkpoint."
-            )
-
         missing, unexpected = model.load_state_dict(cleaned_state, strict=False)
         if missing or unexpected:
             raise ValueError(
-                "Checkpoint partially matched the VAE architecture but still left missing or unexpected keys. "
-                "Please verify that the checkpoint was saved from the current VAE model."
+                "Checkpoint partially matched the current model architecture. "
+                "Please verify that the checkpoint belongs to the expected VAE or diffusion model."
             )
 
-    def _load_model(self) -> VAE:
-        if self._model is not None:
-            return self._model
+    def _load_vae(self) -> VAE:
+        if self._vae is not None:
+            return self._vae
 
-        if not self.model_path.exists():
-            raise FileNotFoundError(f"Checkpoint not found: {self.model_path}")
+        if not self.vae_checkpoint_path.exists():
+            raise FileNotFoundError(
+                f"VAE checkpoint not found: {self.vae_checkpoint_path}"
+            )
 
         model = VAE(latent_dim=self.latent_dim, num_classes=self.num_classes).to(
             self.device
         )
-        checkpoint = torch.load(self.model_path, map_location=self.device)
+        checkpoint = torch.load(self.vae_checkpoint_path, map_location=self.device)
         self._load_compatible_state_dict(model, checkpoint)
         model.eval()
-        self._model = model
+        self._vae = model
+        return model
+
+    def _load_diffusion(self) -> DiffusionModel:
+        if self._diffusion is not None:
+            return self._diffusion
+
+        if not self.diffusion_checkpoint_path.exists():
+            raise FileNotFoundError(
+                f"Diffusion checkpoint not found: {self.diffusion_checkpoint_path}"
+            )
+
+        model = DiffusionModel(
+            latent_dim=self.latent_dim,
+            time_steps=int(self.diffusion_config.get("time_steps", 1000)),
+            hidden_dim=self.diffusion_config.get("hidden_dim"),
+            num_layers=int(self.diffusion_config.get("num_layers", 4)),
+            num_classes=self.num_classes,
+            device=self.device,
+        ).to(self.device)
+        checkpoint = torch.load(
+            self.diffusion_checkpoint_path, map_location=self.device
+        )
+        self._load_compatible_state_dict(model, checkpoint)
+        model.eval()
+        self._diffusion = model
         return model
 
     def _normalize_labels(
@@ -140,14 +147,19 @@ class VAEGenerator:
 
         return labels
 
-    def _sample_latent(self, num_samples: int) -> torch.Tensor:
-        return torch.randn(num_samples, self.latent_dim, device=self.device)
+    def _sample_latents(self, num_samples: int, labels: torch.Tensor) -> torch.Tensor:
+        diffusion = self._load_diffusion()
+        with torch.no_grad():
+            return diffusion.generate(
+                num_samples=num_samples, class_labels=labels, device=self.device
+            )
 
     def generate(
         self, num_samples: Optional[int] = None, label: Optional[LabelInput] = None
     ) -> torch.Tensor:
-        """Generate digit images conditioned on the provided label(s)."""
-        model = self._load_model()
+        vae = self._load_vae()
+        self._load_diffusion()
+
         label_value = self.label if label is None else label
         if num_samples is None:
             if isinstance(label_value, torch.Tensor) and label_value.ndim > 0:
@@ -163,10 +175,10 @@ class VAEGenerator:
             sample_count = num_samples
 
         labels = self._normalize_labels(label_value, sample_count)
-        latent = self._sample_latent(sample_count)
+        latents = self._sample_latents(sample_count, labels)
 
         with torch.no_grad():
-            images = model.decoder(latent, labels)
+            images = vae.decoder(latents, labels)
 
         return images.detach().cpu()
 
@@ -176,12 +188,11 @@ class VAEGenerator:
         output_path: Optional[Union[str, Path]] = None,
         max_images: int = 16,
     ) -> Path:
-        """Save a generated image grid to disk."""
         self.output_dir.mkdir(parents=True, exist_ok=True)
         save_path = (
             Path(output_path)
             if output_path is not None
-            else self.output_dir / f"generated_label_{self.label}.png"
+            else self.output_dir / f"diffusion_label_{self.label}.png"
         )
 
         num_images = min(int(images.size(0)), max_images)
@@ -220,7 +231,3 @@ class VAEGenerator:
         return self.save_generated_images(
             images, output_path=output_path, max_images=max_images
         )
-
-
-# Backward-compatible alias for older imports.
-Generator = VAEGenerator
