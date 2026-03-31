@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Test script to detect available devices (MPS, CUDA, CPU)."""
 
-import torch
 import sys
+from typing import List
+
+import pytest
+import torch
 
 
-def detect_device():
+def detect_device() -> List[tuple[str, str]]:
     """Detect and return the best available device."""
     devices = []
 
@@ -26,32 +29,39 @@ def detect_device():
     return devices
 
 
-def test_device_performance(device_str):
-    """Test basic tensor operations on the specified device."""
-    print(f"\nTesting performance on {device_str}...")
+def get_test_devices() -> List[str]:
+    test_devices = []
+    if torch.cuda.is_available():
+        test_devices.append("cuda:0")
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        test_devices.append("mps")
+    test_devices.append("cpu")
+    return test_devices
 
-    try:
-        device = torch.device(device_str)
 
-        # Create tensors
-        x = torch.randn(1000, 1000, device=device)
-        y = torch.randn(1000, 1000, device=device)
+def run_device_performance_check(device_str: str) -> None:
+    """Run a lightweight tensor operation check on the specified device."""
+    device = torch.device(device_str)
+    x = torch.randn(128, 128, device=device)
+    y = torch.randn(128, 128, device=device)
+    z = torch.matmul(x, y)
 
-        # Test matrix multiplication
-        import time
+    assert z.shape == (128, 128)
+    assert torch.isfinite(z).all()
 
-        start_time = time.time()
-        z = torch.matmul(x, y)
-        elapsed = time.time() - start_time
 
-        print(f"  Matrix multiplication (1000x1000): {elapsed:.4f} seconds")
-        print(f"  Result shape: {z.shape}")
-        print(f"  Result mean: {z.mean().item():.4f}")
+def test_detect_device_includes_cpu() -> None:
+    devices = detect_device()
+    assert any(
+        device_type == "CPU" and device_info == "cpu"
+        for device_type, device_info in devices
+    )
 
-        return True
-    except Exception as e:
-        print(f"  Error: {e}")
-        return False
+
+@pytest.mark.parametrize("device_str", get_test_devices())
+def test_device_performance(device_str: str) -> None:
+    """Test basic tensor operations on each available device."""
+    run_device_performance_check(device_str)
 
 
 def main():
