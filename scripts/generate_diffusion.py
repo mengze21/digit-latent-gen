@@ -6,7 +6,6 @@ import yaml
 
 from digit_latent_gen.inference import DiffusionGenerator
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = ROOT / "configs" / "diffusion_config.yaml"
 
@@ -38,19 +37,42 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Generate digit images from a trained latent diffusion model."
     )
-    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH, help="Path to the YAML config file.")
-    parser.add_argument("--label", type=int, default=None, help="Digit label to generate, from 0 to 9.")
-    parser.add_argument("--num-samples", type=int, default=None, help="Number of images to generate.")
-    parser.add_argument("--vae-checkpoint-path", type=Path, default=None, help="Override VAE checkpoint path.")
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_CONFIG_PATH,
+        help="Path to the YAML config file.",
+    )
+    parser.add_argument(
+        "--label", type=int, default=None, help="Digit label to generate, from 0 to 9."
+    )
+    parser.add_argument(
+        "--num-samples", type=int, default=None, help="Number of images to generate."
+    )
+    parser.add_argument(
+        "--vae-checkpoint-path",
+        type=Path,
+        default=None,
+        help="Override VAE checkpoint path.",
+    )
     parser.add_argument(
         "--diffusion-checkpoint-path",
         type=Path,
         default=None,
         help="Override diffusion checkpoint path.",
     )
-    parser.add_argument("--output-dir", type=Path, default=None, help="Override output directory.")
-    parser.add_argument("--output-path", type=Path, default=None, help="Optional explicit output image path.")
-    parser.add_argument("--device", type=str, default=None, help="Force device: cpu, cuda, or mps.")
+    parser.add_argument(
+        "--output-dir", type=Path, default=None, help="Override output directory."
+    )
+    parser.add_argument(
+        "--output-path",
+        type=Path,
+        default=None,
+        help="Optional explicit output image path.",
+    )
+    parser.add_argument(
+        "--device", type=str, default=None, help="Force device: cpu, cuda, or mps."
+    )
     return parser.parse_args()
 
 
@@ -61,15 +83,27 @@ def main():
     generation_config = config.get("generation", {})
     diffusion_config = config.get("diffusion", {})
 
-    label = args.label if args.label is not None else generation_config.get("default_label", 0)
-    num_samples = args.num_samples if args.num_samples is not None else generation_config.get("default_num_samples", 1)
+    label = (
+        args.label
+        if args.label is not None
+        else generation_config.get("default_label", 0)
+    )
+    num_samples = (
+        args.num_samples
+        if args.num_samples is not None
+        else generation_config.get("default_num_samples", 1)
+    )
     vae_checkpoint_path = args.vae_checkpoint_path or resolve_path(
         generation_config.get("vae_checkpoint_path", "checkpoints/latest.pt")
     )
     diffusion_checkpoint_path = args.diffusion_checkpoint_path or resolve_path(
-        generation_config.get("diffusion_checkpoint_path", "checkpoints/latest_diffusion.pt")
+        generation_config.get(
+            "diffusion_checkpoint_path", "checkpoints/latest_diffusion.pt"
+        )
     )
-    output_dir = args.output_dir or resolve_path(generation_config.get("output_dir", "outputs/generated"))
+    output_dir = args.output_dir or resolve_path(
+        generation_config.get("output_dir", "outputs/generated")
+    )
     device = get_device(args.device or generation_config.get("default_device"))
 
     generator = DiffusionGenerator(

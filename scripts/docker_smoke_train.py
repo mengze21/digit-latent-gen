@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader, TensorDataset
 from digit_latent_gen.models.vae import VAE
 from digit_latent_gen.training.trainer import Trainer
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = ROOT / "configs" / "vae_config.yaml"
 
@@ -26,10 +25,24 @@ def resolve_path(path_value):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run a 1-epoch Docker smoke test for VAE training.")
-    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH, help="Path to the YAML config file.")
-    parser.add_argument("--device", type=str, default="cpu", help="Device to use for the smoke test.")
-    parser.add_argument("--num-samples", type=int, default=64, help="Number of synthetic samples to generate.")
+    parser = argparse.ArgumentParser(
+        description="Run a 1-epoch Docker smoke test for VAE training."
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_CONFIG_PATH,
+        help="Path to the YAML config file.",
+    )
+    parser.add_argument(
+        "--device", type=str, default="cpu", help="Device to use for the smoke test."
+    )
+    parser.add_argument(
+        "--num-samples",
+        type=int,
+        default=64,
+        help="Number of synthetic samples to generate.",
+    )
     return parser.parse_args()
 
 
@@ -102,9 +115,15 @@ def main():
         recon, mu, logvar = loaded_model(sample_batch, sample_labels)
 
     assert checkpoint_path.exists(), "Checkpoint file was not created."
-    assert recon.shape == sample_batch.shape, "Loaded checkpoint produced invalid reconstruction shape."
-    assert mu.shape[1] == model_config["latent_dim"], "Loaded checkpoint produced invalid latent mean shape."
-    assert logvar.shape[1] == model_config["latent_dim"], "Loaded checkpoint produced invalid latent logvar shape."
+    assert (
+        recon.shape == sample_batch.shape
+    ), "Loaded checkpoint produced invalid reconstruction shape."
+    assert (
+        mu.shape[1] == model_config["latent_dim"]
+    ), "Loaded checkpoint produced invalid latent mean shape."
+    assert (
+        logvar.shape[1] == model_config["latent_dim"]
+    ), "Loaded checkpoint produced invalid latent logvar shape."
 
     print("Checkpoint reload succeeded")
     print(f"Output directory: {output_dir}")

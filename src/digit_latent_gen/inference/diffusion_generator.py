@@ -13,7 +13,6 @@ import torch
 from digit_latent_gen.models.diffusion import DiffusionModel
 from digit_latent_gen.models.vae import VAE
 
-
 LabelInput = Union[int, Sequence[int], torch.Tensor]
 
 
@@ -62,7 +61,10 @@ class DiffusionGenerator:
         cleaned_state = {}
         for key, value in state_dict.items():
             cleaned_key = key.removeprefix("module.")
-            if cleaned_key in model_state and model_state[cleaned_key].shape == value.shape:
+            if (
+                cleaned_key in model_state
+                and model_state[cleaned_key].shape == value.shape
+            ):
                 cleaned_state[cleaned_key] = value
 
         missing, unexpected = model.load_state_dict(cleaned_state, strict=False)
@@ -77,9 +79,13 @@ class DiffusionGenerator:
             return self._vae
 
         if not self.vae_checkpoint_path.exists():
-            raise FileNotFoundError(f"VAE checkpoint not found: {self.vae_checkpoint_path}")
+            raise FileNotFoundError(
+                f"VAE checkpoint not found: {self.vae_checkpoint_path}"
+            )
 
-        model = VAE(latent_dim=self.latent_dim, num_classes=self.num_classes).to(self.device)
+        model = VAE(latent_dim=self.latent_dim, num_classes=self.num_classes).to(
+            self.device
+        )
         checkpoint = torch.load(self.vae_checkpoint_path, map_location=self.device)
         self._load_compatible_state_dict(model, checkpoint)
         model.eval()
@@ -91,7 +97,9 @@ class DiffusionGenerator:
             return self._diffusion
 
         if not self.diffusion_checkpoint_path.exists():
-            raise FileNotFoundError(f"Diffusion checkpoint not found: {self.diffusion_checkpoint_path}")
+            raise FileNotFoundError(
+                f"Diffusion checkpoint not found: {self.diffusion_checkpoint_path}"
+            )
 
         model = DiffusionModel(
             latent_dim=self.latent_dim,
@@ -101,23 +109,33 @@ class DiffusionGenerator:
             num_classes=self.num_classes,
             device=self.device,
         ).to(self.device)
-        checkpoint = torch.load(self.diffusion_checkpoint_path, map_location=self.device)
+        checkpoint = torch.load(
+            self.diffusion_checkpoint_path, map_location=self.device
+        )
         self._load_compatible_state_dict(model, checkpoint)
         model.eval()
         self._diffusion = model
         return model
 
-    def _normalize_labels(self, label: Optional[LabelInput], num_samples: int) -> torch.Tensor:
+    def _normalize_labels(
+        self, label: Optional[LabelInput], num_samples: int
+    ) -> torch.Tensor:
         label_value = self.label if label is None else label
 
         if isinstance(label_value, torch.Tensor):
             labels = label_value.to(device=self.device, dtype=torch.long)
             if labels.ndim == 0:
                 labels = labels.repeat(num_samples)
-        elif isinstance(label_value, Iterable) and not isinstance(label_value, (str, bytes)):
-            labels = torch.tensor(list(label_value), device=self.device, dtype=torch.long)
+        elif isinstance(label_value, Iterable) and not isinstance(
+            label_value, (str, bytes)
+        ):
+            labels = torch.tensor(
+                list(label_value), device=self.device, dtype=torch.long
+            )
         else:
-            labels = torch.full((num_samples,), int(label_value), device=self.device, dtype=torch.long)
+            labels = torch.full(
+                (num_samples,), int(label_value), device=self.device, dtype=torch.long
+            )
 
         if labels.numel() == 1 and num_samples > 1:
             labels = labels.repeat(num_samples)
@@ -132,9 +150,13 @@ class DiffusionGenerator:
     def _sample_latents(self, num_samples: int, labels: torch.Tensor) -> torch.Tensor:
         diffusion = self._load_diffusion()
         with torch.no_grad():
-            return diffusion.generate(num_samples=num_samples, class_labels=labels, device=self.device)
+            return diffusion.generate(
+                num_samples=num_samples, class_labels=labels, device=self.device
+            )
 
-    def generate(self, num_samples: Optional[int] = None, label: Optional[LabelInput] = None) -> torch.Tensor:
+    def generate(
+        self, num_samples: Optional[int] = None, label: Optional[LabelInput] = None
+    ) -> torch.Tensor:
         vae = self._load_vae()
         self._load_diffusion()
 
@@ -142,7 +164,9 @@ class DiffusionGenerator:
         if num_samples is None:
             if isinstance(label_value, torch.Tensor) and label_value.ndim > 0:
                 sample_count = int(label_value.numel())
-            elif isinstance(label_value, Iterable) and not isinstance(label_value, (str, bytes, int)):
+            elif isinstance(label_value, Iterable) and not isinstance(
+                label_value, (str, bytes, int)
+            ):
                 label_value = list(label_value)
                 sample_count = len(label_value)
             else:
@@ -165,7 +189,11 @@ class DiffusionGenerator:
         max_images: int = 16,
     ) -> Path:
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        save_path = Path(output_path) if output_path is not None else self.output_dir / f"diffusion_label_{self.label}.png"
+        save_path = (
+            Path(output_path)
+            if output_path is not None
+            else self.output_dir / f"diffusion_label_{self.label}.png"
+        )
 
         num_images = min(int(images.size(0)), max_images)
         cols = min(4, num_images)
@@ -200,4 +228,6 @@ class DiffusionGenerator:
         max_images: int = 16,
     ) -> Path:
         images = self.generate(num_samples=num_samples, label=label)
-        return self.save_generated_images(images, output_path=output_path, max_images=max_images)
+        return self.save_generated_images(
+            images, output_path=output_path, max_images=max_images
+        )

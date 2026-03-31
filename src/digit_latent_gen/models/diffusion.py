@@ -47,7 +47,9 @@ class LatentResidualBlock(nn.Module):
         self.fc1 = nn.Linear(hidden_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.time_proj = nn.Linear(time_emb_dim, hidden_dim)
-        self.class_proj = nn.Linear(class_emb_dim, hidden_dim) if class_emb_dim is not None else None
+        self.class_proj = (
+            nn.Linear(class_emb_dim, hidden_dim) if class_emb_dim is not None else None
+        )
         self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
         self.act = nn.SiLU()
 
@@ -192,12 +194,18 @@ class DiffusionModel(nn.Module):
         self.register_buffer("alphas_cumprod", alphas_cumprod)
         self.register_buffer("alphas_cumprod_prev", alphas_cumprod_prev)
         self.register_buffer("sqrt_alphas_cumprod", torch.sqrt(alphas_cumprod))
-        self.register_buffer("sqrt_one_minus_alphas_cumprod", torch.sqrt(1.0 - alphas_cumprod))
+        self.register_buffer(
+            "sqrt_one_minus_alphas_cumprod", torch.sqrt(1.0 - alphas_cumprod)
+        )
         self.register_buffer("sqrt_recip_alphas", torch.sqrt(1.0 / alphas))
-        posterior_variance = betas * (1.0 - alphas_cumprod_prev) / (1.0 - alphas_cumprod)
+        posterior_variance = (
+            betas * (1.0 - alphas_cumprod_prev) / (1.0 - alphas_cumprod)
+        )
         self.register_buffer("posterior_variance", posterior_variance)
 
-    def _extract(self, values: torch.Tensor, timesteps: torch.Tensor, x_shape: Sequence[int]) -> torch.Tensor:
+    def _extract(
+        self, values: torch.Tensor, timesteps: torch.Tensor, x_shape: Sequence[int]
+    ) -> torch.Tensor:
         gathered = values.gather(0, timesteps)
         view_shape = (timesteps.shape[0],) + (1,) * (len(x_shape) - 1)
         return gathered.view(view_shape)
@@ -217,10 +225,16 @@ class DiffusionModel(nn.Module):
         if noise is None:
             noise = torch.randn_like(x_start)
 
-        sqrt_alphas_cumprod_t = self._extract(self.sqrt_alphas_cumprod, t, x_start.shape)
-        sqrt_one_minus_alphas_cumprod_t = self._extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)
+        sqrt_alphas_cumprod_t = self._extract(
+            self.sqrt_alphas_cumprod, t, x_start.shape
+        )
+        sqrt_one_minus_alphas_cumprod_t = self._extract(
+            self.sqrt_one_minus_alphas_cumprod, t, x_start.shape
+        )
 
-        x_noisy = sqrt_alphas_cumprod_t * x_start + sqrt_one_minus_alphas_cumprod_t * noise
+        x_noisy = (
+            sqrt_alphas_cumprod_t * x_start + sqrt_one_minus_alphas_cumprod_t * noise
+        )
         return x_noisy, noise
 
     def predict_noise(
@@ -247,7 +261,9 @@ class DiffusionModel(nn.Module):
             )
 
         if t is None:
-            t = torch.randint(0, self.time_steps, (x_start.shape[0],), device=x_start.device).long()
+            t = torch.randint(
+                0, self.time_steps, (x_start.shape[0],), device=x_start.device
+            ).long()
         else:
             t = t.to(device=x_start.device, dtype=torch.long)
 
@@ -260,7 +276,9 @@ class DiffusionModel(nn.Module):
             raise ValueError("noise must have the same shape as x_start.")
 
         x_noisy, noise = self.q_sample(x_start, t, noise=noise)
-        predicted_noise = self.predict_noise(x_noisy, t, class_labels=class_labels, latent_z=latent_z)
+        predicted_noise = self.predict_noise(
+            x_noisy, t, class_labels=class_labels, latent_z=latent_z
+        )
         return F.mse_loss(predicted_noise, noise)
 
     def forward(
@@ -283,7 +301,9 @@ class DiffusionModel(nn.Module):
         if noise is None:
             noise = torch.randn_like(x_t)
 
-        predicted_noise = self.predict_noise(x_t, t, class_labels=class_labels, latent_z=latent_z)
+        predicted_noise = self.predict_noise(
+            x_t, t, class_labels=class_labels, latent_z=latent_z
+        )
         sqrt_recip_alphas_t = self._extract(self.sqrt_recip_alphas, t, x_t.shape)
         betas_t = self._extract(self.betas, t, x_t.shape)
         sqrt_one_minus_alphas_cumprod_t = self._extract(
@@ -306,7 +326,9 @@ class DiffusionModel(nn.Module):
         device: Optional[Union[str, torch.device]] = None,
     ) -> torch.Tensor:
         """Run the full reverse process and return latent samples."""
-        sample_device = torch.device(device) if device is not None else self.betas.device
+        sample_device = (
+            torch.device(device) if device is not None else self.betas.device
+        )
         x = torch.randn(*shape, device=sample_device)
         if class_labels is not None:
             class_labels = class_labels.to(device=sample_device, dtype=torch.long)
@@ -314,9 +336,13 @@ class DiffusionModel(nn.Module):
             latent_z = latent_z.to(device=sample_device, dtype=x.dtype)
 
         for timestep in reversed(range(self.time_steps)):
-            t = torch.full((shape[0],), timestep, device=sample_device, dtype=torch.long)
+            t = torch.full(
+                (shape[0],), timestep, device=sample_device, dtype=torch.long
+            )
             step_noise = torch.randn_like(x) if timestep > 0 else torch.zeros_like(x)
-            x = self.p_sample(x, t, class_labels=class_labels, latent_z=latent_z, noise=step_noise)
+            x = self.p_sample(
+                x, t, class_labels=class_labels, latent_z=latent_z, noise=step_noise
+            )
 
         return x
 
@@ -329,7 +355,9 @@ class DiffusionModel(nn.Module):
     ) -> torch.Tensor:
         """Generate latent samples for downstream VAE decoding."""
         if class_labels is None:
-            class_labels = torch.zeros(num_samples, dtype=torch.long, device=self.betas.device)
+            class_labels = torch.zeros(
+                num_samples, dtype=torch.long, device=self.betas.device
+            )
         elif class_labels.ndim == 0:
             class_labels = class_labels.repeat(num_samples)
 

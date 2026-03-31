@@ -78,12 +78,16 @@ class DiffusionTrainer:
             raise ValueError("Cosine scheduler requires 't_max' in scheduler_config.")
 
         eta_min = scheduler_config.get("eta_min", 0.0)
-        return optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=t_max, eta_min=eta_min)
+        return optim.lr_scheduler.CosineAnnealingLR(
+            self.optimizer, T_max=t_max, eta_min=eta_min
+        )
 
     def get_current_learning_rate(self) -> float:
         return self.optimizer.param_groups[0]["lr"]
 
-    def _unpack_batch(self, batch) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
+    def _unpack_batch(
+        self, batch
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
         """Support tuple- and dict-shaped batches.
 
         Accepted tuple formats:
@@ -164,7 +168,9 @@ class DiffusionTrainer:
             loss.backward()
 
             if self.grad_clip_norm is not None:
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
+                torch.nn.utils.clip_grad_norm_(
+                    self.model.parameters(), self.grad_clip_norm
+                )
 
             self.optimizer.step()
 

@@ -9,13 +9,13 @@ from .diffusion import (
 )
 
 __all__ = [
-    'VAE',
-    'Encoder',
-    'Decoder',
-    'DiffusionModel',
-    'LatentDenoiser',
-    'LatentResidualBlock',
-    'UNet',
-    'SinusoidalPositionEmbeddings',
-    'Block',
+    "VAE",
+    "Encoder",
+    "Decoder",
+    "DiffusionModel",
+    "LatentDenoiser",
+    "LatentResidualBlock",
+    "UNet",
+    "SinusoidalPositionEmbeddings",
+    "Block",
 ]

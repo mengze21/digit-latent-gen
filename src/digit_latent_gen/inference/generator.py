@@ -12,7 +12,6 @@ import torch
 
 from digit_latent_gen.models.vae import VAE
 
-
 LabelInput = Union[int, Sequence[int], torch.Tensor]
 
 
@@ -60,11 +59,23 @@ class VAEGenerator:
         cleaned_state = {}
         for key, value in state_dict.items():
             cleaned_key = key.removeprefix("module.")
-            if cleaned_key in model_state and model_state[cleaned_key].shape == value.shape:
+            if (
+                cleaned_key in model_state
+                and model_state[cleaned_key].shape == value.shape
+            ):
                 cleaned_state[cleaned_key] = value
 
-        diffusion_keys = ("denoiser.", "betas", "alphas", "posterior_variance", "sqrt_alphas_cumprod")
-        if any(key.startswith(diffusion_keys) or key in diffusion_keys for key in state_dict.keys()):
+        diffusion_keys = (
+            "denoiser.",
+            "betas",
+            "alphas",
+            "posterior_variance",
+            "sqrt_alphas_cumprod",
+        )
+        if any(
+            key.startswith(diffusion_keys) or key in diffusion_keys
+            for key in state_dict.keys()
+        ):
             raise ValueError(
                 "The provided checkpoint looks like a diffusion checkpoint, but Generator expects a VAE checkpoint."
             )
@@ -90,24 +101,34 @@ class VAEGenerator:
         if not self.model_path.exists():
             raise FileNotFoundError(f"Checkpoint not found: {self.model_path}")
 
-        model = VAE(latent_dim=self.latent_dim, num_classes=self.num_classes).to(self.device)
+        model = VAE(latent_dim=self.latent_dim, num_classes=self.num_classes).to(
+            self.device
+        )
         checkpoint = torch.load(self.model_path, map_location=self.device)
         self._load_compatible_state_dict(model, checkpoint)
         model.eval()
         self._model = model
         return model
 
-    def _normalize_labels(self, label: Optional[LabelInput], num_samples: int) -> torch.Tensor:
+    def _normalize_labels(
+        self, label: Optional[LabelInput], num_samples: int
+    ) -> torch.Tensor:
         label_value = self.label if label is None else label
 
         if isinstance(label_value, torch.Tensor):
             labels = label_value.to(device=self.device, dtype=torch.long)
             if labels.ndim == 0:
                 labels = labels.repeat(num_samples)
-        elif isinstance(label_value, Iterable) and not isinstance(label_value, (str, bytes)):
-            labels = torch.tensor(list(label_value), device=self.device, dtype=torch.long)
+        elif isinstance(label_value, Iterable) and not isinstance(
+            label_value, (str, bytes)
+        ):
+            labels = torch.tensor(
+                list(label_value), device=self.device, dtype=torch.long
+            )
         else:
-            labels = torch.full((num_samples,), int(label_value), device=self.device, dtype=torch.long)
+            labels = torch.full(
+                (num_samples,), int(label_value), device=self.device, dtype=torch.long
+            )
 
         if labels.numel() == 1 and num_samples > 1:
             labels = labels.repeat(num_samples)
@@ -122,14 +143,18 @@ class VAEGenerator:
     def _sample_latent(self, num_samples: int) -> torch.Tensor:
         return torch.randn(num_samples, self.latent_dim, device=self.device)
 
-    def generate(self, num_samples: Optional[int] = None, label: Optional[LabelInput] = None) -> torch.Tensor:
+    def generate(
+        self, num_samples: Optional[int] = None, label: Optional[LabelInput] = None
+    ) -> torch.Tensor:
         """Generate digit images conditioned on the provided label(s)."""
         model = self._load_model()
         label_value = self.label if label is None else label
         if num_samples is None:
             if isinstance(label_value, torch.Tensor) and label_value.ndim > 0:
                 sample_count = int(label_value.numel())
-            elif isinstance(label_value, Iterable) and not isinstance(label_value, (str, bytes, int)):
+            elif isinstance(label_value, Iterable) and not isinstance(
+                label_value, (str, bytes, int)
+            ):
                 label_value = list(label_value)
                 sample_count = len(label_value)
             else:
@@ -153,7 +178,11 @@ class VAEGenerator:
     ) -> Path:
         """Save a generated image grid to disk."""
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        save_path = Path(output_path) if output_path is not None else self.output_dir / f"generated_label_{self.label}.png"
+        save_path = (
+            Path(output_path)
+            if output_path is not None
+            else self.output_dir / f"generated_label_{self.label}.png"
+        )
 
         num_images = min(int(images.size(0)), max_images)
         cols = min(4, num_images)
@@ -188,7 +217,9 @@ class VAEGenerator:
         max_images: int = 16,
     ) -> Path:
         images = self.generate(num_samples=num_samples, label=label)
-        return self.save_generated_images(images, output_path=output_path, max_images=max_images)
+        return self.save_generated_images(
+            images, output_path=output_path, max_images=max_images
+        )
 
 
 # Backward-compatible alias for older imports.

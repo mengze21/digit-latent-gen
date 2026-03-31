@@ -6,7 +6,6 @@ import yaml
 
 from digit_latent_gen.inference import VAEGenerator
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = ROOT / "configs" / "generate_config.yaml"
 
@@ -35,14 +34,36 @@ def get_device(requested_device=None):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Generate digit images from a trained conditional VAE.")
-    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH, help="Path to the YAML config file.")
-    parser.add_argument("--label", type=int, required=True, help="Digit label to generate, from 0 to 9.")
-    parser.add_argument("--num-samples", type=int, default=1, help="Number of images to generate.")
-    parser.add_argument("--checkpoint-path", type=Path, default=None, help="Override checkpoint path.")
-    parser.add_argument("--output-dir", type=Path, default=None, help="Override output directory.")
-    parser.add_argument("--output-path", type=Path, default=None, help="Optional explicit output image path.")
-    parser.add_argument("--device", type=str, default=None, help="Force device: cpu, cuda, or mps.")
+    parser = argparse.ArgumentParser(
+        description="Generate digit images from a trained conditional VAE."
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_CONFIG_PATH,
+        help="Path to the YAML config file.",
+    )
+    parser.add_argument(
+        "--label", type=int, required=True, help="Digit label to generate, from 0 to 9."
+    )
+    parser.add_argument(
+        "--num-samples", type=int, default=1, help="Number of images to generate."
+    )
+    parser.add_argument(
+        "--checkpoint-path", type=Path, default=None, help="Override checkpoint path."
+    )
+    parser.add_argument(
+        "--output-dir", type=Path, default=None, help="Override output directory."
+    )
+    parser.add_argument(
+        "--output-path",
+        type=Path,
+        default=None,
+        help="Optional explicit output image path.",
+    )
+    parser.add_argument(
+        "--device", type=str, default=None, help="Force device: cpu, cuda, or mps."
+    )
     return parser.parse_args()
 
 
@@ -55,7 +76,9 @@ def main():
     checkpoint_path = args.checkpoint_path or resolve_path(
         generation_config.get("checkpoint_path", "checkpoints/latest.pt")
     )
-    output_dir = args.output_dir or resolve_path(generation_config.get("output_dir", "outputs/generated"))
+    output_dir = args.output_dir or resolve_path(
+        generation_config.get("output_dir", "outputs/generated")
+    )
     device = get_device(args.device or generation_config.get("default_device"))
 
     generator = VAEGenerator(

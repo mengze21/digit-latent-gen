@@ -6,7 +6,6 @@ import yaml
 
 from digit_latent_gen.inference import DiffusionGenerator, VAEGenerator
 
-
 ROOT = Path(__file__).resolve().parent
 VAE_CONFIG_PATH = ROOT / "configs" / "generate_config.yaml"
 DIFFUSION_CONFIG_PATH = ROOT / "configs" / "diffusion_config.yaml"
@@ -45,7 +44,12 @@ def render_generated_images(images):
     cols = st.columns(min(4, max(1, num_images)))
     for idx, image in enumerate(images):
         with cols[idx % len(cols)]:
-            st.image(image.squeeze().numpy(), clamp=True, use_container_width=True, caption=f"Sample {idx + 1}")
+            st.image(
+                image.squeeze().numpy(),
+                clamp=True,
+                use_container_width=True,
+                caption=f"Sample {idx + 1}",
+            )
 
 
 def render_comparison(primary_title, primary_images, secondary_title, secondary_images):
@@ -75,22 +79,34 @@ with st.sidebar:
         generation_config = vae_config.get("generation", {})
         label_default = generation_config.get("default_label", 0)
         num_samples_default = generation_config.get("default_num_samples", 4)
-        checkpoint_default = resolve_path(generation_config.get("checkpoint_path", "checkpoints/latest.pt"))
-        output_default = resolve_path(generation_config.get("output_dir", "outputs/generated"))
+        checkpoint_default = resolve_path(
+            generation_config.get("checkpoint_path", "checkpoints/latest.pt")
+        )
+        output_default = resolve_path(
+            generation_config.get("output_dir", "outputs/generated")
+        )
         device_default = generation_config.get("default_device", "auto")
     else:
         model_config = diffusion_config["model"]
         generation_config = diffusion_config.get("generation", {})
         label_default = generation_config.get("default_label", 0)
         num_samples_default = generation_config.get("default_num_samples", 4)
-        vae_checkpoint_default = resolve_path(generation_config.get("vae_checkpoint_path", "checkpoints/latest.pt"))
-        diffusion_checkpoint_default = resolve_path(
-            generation_config.get("diffusion_checkpoint_path", "checkpoints/latest_diffusion.pt")
+        vae_checkpoint_default = resolve_path(
+            generation_config.get("vae_checkpoint_path", "checkpoints/latest.pt")
         )
-        output_default = resolve_path(generation_config.get("output_dir", "outputs/generated"))
+        diffusion_checkpoint_default = resolve_path(
+            generation_config.get(
+                "diffusion_checkpoint_path", "checkpoints/latest_diffusion.pt"
+            )
+        )
+        output_default = resolve_path(
+            generation_config.get("output_dir", "outputs/generated")
+        )
         device_default = generation_config.get("default_device", "auto")
 
-    label = st.selectbox("Digit label", list(range(model_config["num_classes"])), index=label_default)
+    label = st.selectbox(
+        "Digit label", list(range(model_config["num_classes"])), index=label_default
+    )
     num_samples = st.slider(
         "Number of images",
         min_value=1,
@@ -122,7 +138,11 @@ with st.sidebar:
     device = st.selectbox(
         "Device",
         device_options,
-        index=device_options.index(device_default) if device_default in device_options else 0,
+        index=(
+            device_options.index(device_default)
+            if device_default in device_options
+            else 0
+        ),
     )
     compare_outputs = st.checkbox("Keep both outputs for comparison", value=True)
     generate_clicked = st.button("Generate")
@@ -188,7 +208,9 @@ if generate_clicked:
                     diffusion_config=diffusion_config.get("training", {}),
                 )
                 with st.spinner("Generating diffusion comparison..."):
-                    comparison_images = comparison_generator.generate(num_samples=num_samples, label=label)
+                    comparison_images = comparison_generator.generate(
+                        num_samples=num_samples, label=label
+                    )
             else:
                 comparison_images = None
 
@@ -228,23 +250,41 @@ if generate_clicked:
                 device=resolved_device,
             )
             with st.spinner("Generating VAE comparison..."):
-                comparison_images = comparison_generator.generate(num_samples=num_samples, label=label)
+                comparison_images = comparison_generator.generate(
+                    num_samples=num_samples, label=label
+                )
 
     st.success(f"Generated {images.size(0)} image(s) for label {label}.")
-    if compare_outputs and "comparison_images" in locals() and comparison_images is not None:
+    if (
+        compare_outputs
+        and "comparison_images" in locals()
+        and comparison_images is not None
+    ):
         if mode == "VAE":
-            render_comparison("VAE output", images, "Latent Diffusion output", comparison_images)
+            render_comparison(
+                "VAE output", images, "Latent Diffusion output", comparison_images
+            )
         else:
-            render_comparison("Latent Diffusion output", images, "VAE output", comparison_images)
+            render_comparison(
+                "Latent Diffusion output", images, "VAE output", comparison_images
+            )
     else:
         render_generated_images(images)
 
     save_path = generator.save_generated_images(images, max_images=num_samples)
     st.info(f"Saved preview to {save_path}")
-    if compare_outputs and "comparison_images" in locals() and comparison_images is not None:
-        comparison_save_path = comparison_generator.save_generated_images(comparison_images, max_images=num_samples)
+    if (
+        compare_outputs
+        and "comparison_images" in locals()
+        and comparison_images is not None
+    ):
+        comparison_save_path = comparison_generator.save_generated_images(
+            comparison_images, max_images=num_samples
+        )
         st.info(f"Saved comparison preview to {comparison_save_path}")
     elif compare_outputs:
-        st.warning("Comparison output was skipped because the alternate checkpoint was not found.")
+        st.warning(
+            "Comparison output was skipped because the alternate checkpoint was not found."
+        )
 else:
     st.info("从侧边栏选择模式、数字并点击 Generate。")

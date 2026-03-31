@@ -35,7 +35,12 @@ def _collect_layer_shapes(model, *inputs):
         hooks.append(
             module.register_forward_hook(
                 lambda _, module_inputs, output, layer_name=name, layer_type=module.__class__.__name__: rows.append(
-                    (layer_name, layer_type, _format_shape(module_inputs), _format_shape(output))
+                    (
+                        layer_name,
+                        layer_type,
+                        _format_shape(module_inputs),
+                        _format_shape(output),
+                    )
                 )
             )
         )
@@ -54,13 +59,21 @@ def _print_summary(title, rows):
     print("-" * len(title))
     print(f"{'Layer Name':<20} {'Type':<20} {'Input Shape':<28} Output Shape")
     for layer_name, layer_type, input_shape, output_shape in rows:
-        print(f"{layer_name:<20} {layer_type:<20} {str(input_shape):<28} {output_shape}")
+        print(
+            f"{layer_name:<20} {layer_type:<20} {str(input_shape):<28} {output_shape}"
+        )
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Display VAE layer names and tensor shapes.")
-    parser.add_argument("--config", type=Path, default=CONFIG_PATH, help="Path to the YAML config file.")
-    parser.add_argument("--batch-size", type=int, default=2, help="Batch size for dummy inputs.")
+    parser = argparse.ArgumentParser(
+        description="Display VAE layer names and tensor shapes."
+    )
+    parser.add_argument(
+        "--config", type=Path, default=CONFIG_PATH, help="Path to the YAML config file."
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=2, help="Batch size for dummy inputs."
+    )
     args = parser.parse_args()
 
     with args.config.open("r", encoding="utf-8") as config_file:

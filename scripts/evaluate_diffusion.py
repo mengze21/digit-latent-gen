@@ -15,7 +15,6 @@ from digit_latent_gen.common.utils import get_mnist_dataset
 from digit_latent_gen.models.diffusion import DiffusionModel
 from digit_latent_gen.models.vae import VAE
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = ROOT / "configs" / "diffusion_config.yaml"
 LOGGER = logging.getLogger(__name__)
@@ -32,19 +31,45 @@ def parse_args():
         description="Evaluate a trained latent diffusion checkpoint.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH, help="Path to the YAML config file.")
-    parser.add_argument("--vae-checkpoint-path", type=Path, default=None, help="Override VAE checkpoint path.")
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_CONFIG_PATH,
+        help="Path to the YAML config file.",
+    )
+    parser.add_argument(
+        "--vae-checkpoint-path",
+        type=Path,
+        default=None,
+        help="Override VAE checkpoint path.",
+    )
     parser.add_argument(
         "--diffusion-checkpoint-path",
         type=Path,
         default=None,
         help="Override diffusion checkpoint path.",
     )
-    parser.add_argument("--batch-size", type=int, default=None, help="Override evaluation batch size.")
-    parser.add_argument("--num-workers", type=int, default=None, help="Override dataloader worker count.")
-    parser.add_argument("--device", type=str, default=None, help="Force device: cpu, cuda, or mps.")
-    parser.add_argument("--output-dir", type=Path, default=None, help="Override evaluation output directory.")
-    parser.add_argument("--log-dir", type=Path, default=None, help="Override log directory.")
+    parser.add_argument(
+        "--batch-size", type=int, default=None, help="Override evaluation batch size."
+    )
+    parser.add_argument(
+        "--num-workers",
+        type=int,
+        default=None,
+        help="Override dataloader worker count.",
+    )
+    parser.add_argument(
+        "--device", type=str, default=None, help="Force device: cpu, cuda, or mps."
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=None,
+        help="Override evaluation output directory.",
+    )
+    parser.add_argument(
+        "--log-dir", type=Path, default=None, help="Override log directory."
+    )
     parser.add_argument(
         "--save-generated-samples",
         action=argparse.BooleanOptionalAction,
@@ -99,7 +124,9 @@ def resolve_runtime_config(config, args):
     if args.vae_checkpoint_path is not None:
         evaluation_config["vae_checkpoint_path"] = str(args.vae_checkpoint_path)
     if args.diffusion_checkpoint_path is not None:
-        evaluation_config["diffusion_checkpoint_path"] = str(args.diffusion_checkpoint_path)
+        evaluation_config["diffusion_checkpoint_path"] = str(
+            args.diffusion_checkpoint_path
+        )
     if args.batch_size is not None:
         evaluation_config["batch_size"] = args.batch_size
     if args.num_workers is not None:
@@ -120,7 +147,9 @@ def resolve_runtime_config(config, args):
         "paths": {
             "data_dir": resolve_path(paths_config.get("data_dir", "data")),
             "output_dir": resolve_path(
-                evaluation_config.get("output_dir", paths_config.get("output_dir", "outputs"))
+                evaluation_config.get(
+                    "output_dir", paths_config.get("output_dir", "outputs")
+                )
             ),
             "log_dir": resolve_path(paths_config.get("log_dir", "outputs/logs")),
         },
@@ -163,7 +192,9 @@ def save_generated_grid(images: torch.Tensor, labels: torch.Tensor, output_path:
 
 
 def build_latent_test_loader(vae_model, test_dataset, batch_size, num_workers, device):
-    loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    loader = DataLoader(
+        test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
+    )
     latent_batches = []
     label_batches = []
 
@@ -202,9 +233,13 @@ def main():
     save_generated_samples = evaluation_config.get("save_generated_samples", True)
     num_generated_samples = evaluation_config.get("num_generated_samples", 16)
 
-    vae_checkpoint_path = resolve_path(evaluation_config.get("vae_checkpoint_path", "checkpoints/latest.pt"))
+    vae_checkpoint_path = resolve_path(
+        evaluation_config.get("vae_checkpoint_path", "checkpoints/latest.pt")
+    )
     diffusion_checkpoint_path = resolve_path(
-        evaluation_config.get("diffusion_checkpoint_path", "checkpoints/latest_diffusion.pt")
+        evaluation_config.get(
+            "diffusion_checkpoint_path", "checkpoints/latest_diffusion.pt"
+        )
     )
     output_dir = paths_config["output_dir"] / "diffusion_evaluation"
     log_dir = paths_config["log_dir"]
@@ -233,9 +268,13 @@ def main():
     if not vae_checkpoint_path.exists():
         raise FileNotFoundError(f"VAE checkpoint not found: {vae_checkpoint_path}")
     if not diffusion_checkpoint_path.exists():
-        raise FileNotFoundError(f"Diffusion checkpoint not found: {diffusion_checkpoint_path}")
+        raise FileNotFoundError(
+            f"Diffusion checkpoint not found: {diffusion_checkpoint_path}"
+        )
 
-    test_dataset = get_mnist_dataset(train=False, root_dir=str(paths_config["data_dir"]))
+    test_dataset = get_mnist_dataset(
+        train=False, root_dir=str(paths_config["data_dir"])
+    )
 
     vae_model = VAE(
         latent_dim=model_config["latent_dim"],
@@ -289,7 +328,10 @@ def main():
     LOGGER.info("  %-*s : %d", CONFIG_KEY_WIDTH, "num_test_samples", total_samples)
 
     if save_generated_samples:
-        generated_labels = torch.arange(num_generated_samples, device=device) % model_config["num_classes"]
+        generated_labels = (
+            torch.arange(num_generated_samples, device=device)
+            % model_config["num_classes"]
+        )
         generated_latents = diffusion_model.generate(
             num_samples=num_generated_samples,
             class_labels=generated_labels,

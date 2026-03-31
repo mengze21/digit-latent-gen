@@ -12,7 +12,6 @@ from digit_latent_gen.models.vae import VAE
 from digit_latent_gen.models.diffusion import DiffusionModel
 from digit_latent_gen.training.diffusion_trainer import DiffusionTrainer
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = ROOT / "configs" / "diffusion_config.yaml"
 LOGGER = logging.getLogger(__name__)
@@ -25,20 +24,60 @@ def load_config(config_path):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train the latent diffusion model.")
-    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH, help="Path to the YAML config file.")
-    parser.add_argument("--batch-size", type=int, default=None, help="Override diffusion batch size.")
-    parser.add_argument("--epochs", type=int, default=None, help="Override number of training epochs.")
-    parser.add_argument("--learning-rate", type=float, default=None, help="Override optimizer learning rate.")
-    parser.add_argument("--num-workers", type=int, default=None, help="Override dataloader worker count.")
-    parser.add_argument("--device", type=str, default=None, help="Force device: cpu, cuda, or mps.")
-    parser.add_argument("--data-dir", type=Path, default=None, help="Override dataset root directory.")
-    parser.add_argument("--output-dir", type=Path, default=None, help="Override output directory.")
-    parser.add_argument("--checkpoint-dir", type=Path, default=None, help="Override checkpoint directory.")
-    parser.add_argument("--log-dir", type=Path, default=None, help="Override log directory.")
-    parser.add_argument("--time-steps", type=int, default=None, help="Override diffusion time steps.")
-    parser.add_argument("--latent-dim", type=int, default=None, help="Override latent dimensionality.")
-    parser.add_argument("--hidden-dim", type=int, default=None, help="Override denoiser hidden size.")
-    parser.add_argument("--num-layers", type=int, default=None, help="Override denoiser depth.")
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_CONFIG_PATH,
+        help="Path to the YAML config file.",
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=None, help="Override diffusion batch size."
+    )
+    parser.add_argument(
+        "--epochs", type=int, default=None, help="Override number of training epochs."
+    )
+    parser.add_argument(
+        "--learning-rate",
+        type=float,
+        default=None,
+        help="Override optimizer learning rate.",
+    )
+    parser.add_argument(
+        "--num-workers",
+        type=int,
+        default=None,
+        help="Override dataloader worker count.",
+    )
+    parser.add_argument(
+        "--device", type=str, default=None, help="Force device: cpu, cuda, or mps."
+    )
+    parser.add_argument(
+        "--data-dir", type=Path, default=None, help="Override dataset root directory."
+    )
+    parser.add_argument(
+        "--output-dir", type=Path, default=None, help="Override output directory."
+    )
+    parser.add_argument(
+        "--checkpoint-dir",
+        type=Path,
+        default=None,
+        help="Override checkpoint directory.",
+    )
+    parser.add_argument(
+        "--log-dir", type=Path, default=None, help="Override log directory."
+    )
+    parser.add_argument(
+        "--time-steps", type=int, default=None, help="Override diffusion time steps."
+    )
+    parser.add_argument(
+        "--latent-dim", type=int, default=None, help="Override latent dimensionality."
+    )
+    parser.add_argument(
+        "--hidden-dim", type=int, default=None, help="Override denoiser hidden size."
+    )
+    parser.add_argument(
+        "--num-layers", type=int, default=None, help="Override denoiser depth."
+    )
     parser.add_argument(
         "--grad-clip-norm",
         type=float,
@@ -108,7 +147,9 @@ def resolve_runtime_config(config, args):
         "paths": {
             "data_dir": resolve_path(paths_config.get("data_dir", "data")),
             "output_dir": resolve_path(paths_config.get("output_dir", "outputs")),
-            "checkpoint_dir": resolve_path(paths_config.get("checkpoint_dir", "checkpoints")),
+            "checkpoint_dir": resolve_path(
+                paths_config.get("checkpoint_dir", "checkpoints")
+            ),
             "log_dir": resolve_path(paths_config.get("log_dir", "outputs/logs")),
         },
     }
@@ -137,7 +178,9 @@ def log_epoch_metrics(epoch, metrics, current_lr, num_epochs):
 
 
 def extract_latent_dataset(vae_model, dataset, batch_size, num_workers, device):
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    loader = DataLoader(
+        dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
+    )
     latent_batches = []
     label_batches = []
 
@@ -175,9 +218,13 @@ def main():
     num_layers = diffusion_config.get("num_layers", 4)
     grad_clip_norm = diffusion_config.get("grad_clip_norm")
     checkpoint_name = diffusion_config.get("checkpoint_name", "diffusion_model.pt")
-    latest_checkpoint_name = diffusion_config.get("latest_checkpoint_name", "latest_diffusion.pt")
+    latest_checkpoint_name = diffusion_config.get(
+        "latest_checkpoint_name", "latest_diffusion.pt"
+    )
     log_filename = diffusion_config.get("log_filename", "diffusion_train.log")
-    vae_checkpoint_path = resolve_path(diffusion_config.get("vae_checkpoint_path", "checkpoints/latest.pt"))
+    vae_checkpoint_path = resolve_path(
+        diffusion_config.get("vae_checkpoint_path", "checkpoints/latest.pt")
+    )
     data_dir = paths_config["data_dir"]
     checkpoint_dir = paths_config["checkpoint_dir"]
     log_dir = paths_config["log_dir"]
@@ -190,7 +237,10 @@ def main():
     LOGGER.info("Using device: %s", device)
     LOGGER.info("Model configuration: %s", model_config)
     LOGGER.info("Diffusion configuration: %s", diffusion_config)
-    LOGGER.info("Path configuration: %s", {name: str(path) for name, path in paths_config.items()})
+    LOGGER.info(
+        "Path configuration: %s",
+        {name: str(path) for name, path in paths_config.items()},
+    )
 
     if not vae_checkpoint_path.exists():
         raise FileNotFoundError(
@@ -214,7 +264,9 @@ def main():
         num_workers=num_workers,
         device=device,
     )
-    train_loader = DataLoader(latent_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    train_loader = DataLoader(
+        latent_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers
+    )
 
     model = DiffusionModel(
         latent_dim=latent_dim,

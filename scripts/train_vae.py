@@ -10,7 +10,6 @@ from digit_latent_gen.common.utils import get_mnist_dataset
 from digit_latent_gen.models.vae import VAE
 from digit_latent_gen.training.trainer import Trainer
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = ROOT / "configs" / "vae_config.yaml"
 LOGGER = logging.getLogger(__name__)
@@ -23,22 +22,54 @@ def load_config(config_path):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train the VAE model.")
-    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH, help="Path to the YAML config file.")
-    parser.add_argument("--batch-size", type=int, default=None, help="Override training batch size.")
-    parser.add_argument("--epochs", type=int, default=None, help="Override number of training epochs.")
-    parser.add_argument("--learning-rate", type=float, default=None, help="Override optimizer learning rate.")
-    parser.add_argument("--num-workers", type=int, default=None, help="Override dataloader worker count.")
-    parser.add_argument("--device", type=str, default=None, help="Force device: cpu, cuda, or mps.")
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_CONFIG_PATH,
+        help="Path to the YAML config file.",
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=None, help="Override training batch size."
+    )
+    parser.add_argument(
+        "--epochs", type=int, default=None, help="Override number of training epochs."
+    )
+    parser.add_argument(
+        "--learning-rate",
+        type=float,
+        default=None,
+        help="Override optimizer learning rate.",
+    )
+    parser.add_argument(
+        "--num-workers",
+        type=int,
+        default=None,
+        help="Override dataloader worker count.",
+    )
+    parser.add_argument(
+        "--device", type=str, default=None, help="Force device: cpu, cuda, or mps."
+    )
     parser.add_argument(
         "--use-scheduler",
         action=argparse.BooleanOptionalAction,
         default=None,
         help="Enable or disable the configured learning-rate scheduler.",
     )
-    parser.add_argument("--data-dir", type=Path, default=None, help="Override dataset root directory.")
-    parser.add_argument("--output-dir", type=Path, default=None, help="Override output directory.")
-    parser.add_argument("--checkpoint-dir", type=Path, default=None, help="Override checkpoint directory.")
-    parser.add_argument("--log-dir", type=Path, default=None, help="Override log directory.")
+    parser.add_argument(
+        "--data-dir", type=Path, default=None, help="Override dataset root directory."
+    )
+    parser.add_argument(
+        "--output-dir", type=Path, default=None, help="Override output directory."
+    )
+    parser.add_argument(
+        "--checkpoint-dir",
+        type=Path,
+        default=None,
+        help="Override checkpoint directory.",
+    )
+    parser.add_argument(
+        "--log-dir", type=Path, default=None, help="Override log directory."
+    )
     parser.add_argument(
         "--shuffle",
         action=argparse.BooleanOptionalAction,
@@ -100,7 +131,9 @@ def resolve_runtime_config(config, args):
         "paths": {
             "data_dir": resolve_path(paths_config.get("data_dir", "data")),
             "output_dir": resolve_path(paths_config.get("output_dir", "outputs")),
-            "checkpoint_dir": resolve_path(paths_config.get("checkpoint_dir", "checkpoints")),
+            "checkpoint_dir": resolve_path(
+                paths_config.get("checkpoint_dir", "checkpoints")
+            ),
             "log_dir": resolve_path(paths_config.get("log_dir", "outputs/logs")),
         },
     }
@@ -143,7 +176,11 @@ def main():
     num_epochs = train_config["epochs"]
     learning_rate = train_config["learning_rate"]
     kl_weight = train_config.get("kl_weight", 1.0)
-    scheduler_config = train_config.get("lr_scheduler") if train_config.get("use_scheduler", False) else None
+    scheduler_config = (
+        train_config.get("lr_scheduler")
+        if train_config.get("use_scheduler", False)
+        else None
+    )
     shuffle = train_config.get("shuffle", True)
     num_workers = train_config.get("num_workers", 0)
     checkpoint_name = train_config.get("checkpoint_name", "vae_model.pt")
@@ -162,7 +199,10 @@ def main():
     LOGGER.info("Using device: %s", device)
     LOGGER.info("Model configuration: %s", model_config)
     LOGGER.info("Training configuration: %s", train_config)
-    LOGGER.info("Path configuration: %s", {name: str(path) for name, path in paths_config.items()})
+    LOGGER.info(
+        "Path configuration: %s",
+        {name: str(path) for name, path in paths_config.items()},
+    )
 
     train_dataset = get_mnist_dataset(train=True, root_dir=str(data_dir))
     train_loader = DataLoader(

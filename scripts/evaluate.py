@@ -13,7 +13,6 @@ from torch.utils.data import DataLoader
 from digit_latent_gen.common.utils import get_mnist_dataset
 from digit_latent_gen.models.vae import VAE
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = ROOT / "configs" / "vae_config.yaml"
 LOGGER = logging.getLogger(__name__)
@@ -30,13 +29,36 @@ def parse_args():
         description="Evaluate a trained VAE checkpoint.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH, help="Path to the YAML config file.")
-    parser.add_argument("--checkpoint-path", type=Path, default=None, help="Override checkpoint path.")
-    parser.add_argument("--batch-size", type=int, default=None, help="Override evaluation batch size.")
-    parser.add_argument("--num-workers", type=int, default=None, help="Override dataloader worker count.")
-    parser.add_argument("--device", type=str, default=None, help="Force device: cpu, cuda, or mps.")
-    parser.add_argument("--output-dir", type=Path, default=None, help="Override evaluation output directory.")
-    parser.add_argument("--log-dir", type=Path, default=None, help="Override log directory.")
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_CONFIG_PATH,
+        help="Path to the YAML config file.",
+    )
+    parser.add_argument(
+        "--checkpoint-path", type=Path, default=None, help="Override checkpoint path."
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=None, help="Override evaluation batch size."
+    )
+    parser.add_argument(
+        "--num-workers",
+        type=int,
+        default=None,
+        help="Override dataloader worker count.",
+    )
+    parser.add_argument(
+        "--device", type=str, default=None, help="Force device: cpu, cuda, or mps."
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=None,
+        help="Override evaluation output directory.",
+    )
+    parser.add_argument(
+        "--log-dir", type=Path, default=None, help="Override log directory."
+    )
     parser.add_argument(
         "--save-reconstructions",
         action=argparse.BooleanOptionalAction,
@@ -108,7 +130,9 @@ def resolve_runtime_config(config, args):
         "paths": {
             "data_dir": resolve_path(paths_config.get("data_dir", "data")),
             "output_dir": resolve_path(
-                testing_config.get("output_dir", paths_config.get("output_dir", "outputs"))
+                testing_config.get(
+                    "output_dir", paths_config.get("output_dir", "outputs")
+                )
             ),
             "log_dir": resolve_path(paths_config.get("log_dir", "outputs/logs")),
         },
@@ -137,7 +161,9 @@ def save_reconstruction_grid(inputs, reconstructions, labels, output_path):
         axes[0, idx].axis("off")
         axes[0, idx].set_title(f"Label: {labels[idx].item()}")
 
-        axes[1, idx].imshow(reconstructions[idx].detach().cpu().squeeze().numpy(), cmap="gray")
+        axes[1, idx].imshow(
+            reconstructions[idx].detach().cpu().squeeze().numpy(), cmap="gray"
+        )
         axes[1, idx].axis("off")
 
     axes[0, 0].set_ylabel("Original")
@@ -156,7 +182,9 @@ def main():
     testing_config = runtime_config["testing"]
     paths_config = runtime_config["paths"]
 
-    checkpoint_path = resolve_path(testing_config.get("checkpoint_path", "checkpoints/latest.pt"))
+    checkpoint_path = resolve_path(
+        testing_config.get("checkpoint_path", "checkpoints/latest.pt")
+    )
     output_dir = paths_config["output_dir"] / "evaluation"
     log_dir = paths_config["log_dir"]
     log_filename = testing_config.get("log_filename", "evaluate.log")
@@ -189,7 +217,9 @@ def main():
     if not checkpoint_path.exists():
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
 
-    test_dataset = get_mnist_dataset(train=False, root_dir=str(paths_config["data_dir"]))
+    test_dataset = get_mnist_dataset(
+        train=False, root_dir=str(paths_config["data_dir"])
+    )
     test_loader = DataLoader(
         test_dataset,
         batch_size=batch_size,
@@ -220,7 +250,9 @@ def main():
             labels = labels.to(device)
 
             reconstructions, mu, logvar = model(inputs, labels)
-            loss, recon_loss, kl_loss = compute_vae_loss(inputs, reconstructions, mu, logvar)
+            loss, recon_loss, kl_loss = compute_vae_loss(
+                inputs, reconstructions, mu, logvar
+            )
 
             batch_size_actual = inputs.size(0)
             total_loss += loss.item()
@@ -232,7 +264,7 @@ def main():
                 sample_batch = inputs.cpu()
                 sample_labels = labels.cpu()
                 sample_reconstructions = reconstructions.cpu()
-            
+
             if (batch_idx + 1) % 10 == 0:
                 LOGGER.info("Processed %d batches...", batch_idx + 1)
 
@@ -249,9 +281,11 @@ def main():
 
     if save_reconstructions and sample_batch is not None:
         reconstruction_path = output_dir / "test_reconstructions.png"
-        save_reconstruction_grid(sample_batch, sample_reconstructions, sample_labels, reconstruction_path)
+        save_reconstruction_grid(
+            sample_batch, sample_reconstructions, sample_labels, reconstruction_path
+        )
         LOGGER.info("Saved reconstructions to %s", reconstruction_path)
-    
+
     LOGGER.info("Evaluation finished successfully")
 
 

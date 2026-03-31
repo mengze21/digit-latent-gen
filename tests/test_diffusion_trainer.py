@@ -1,4 +1,5 @@
 """Smoke tests for the latent diffusion trainer."""
+
 from torch.utils.data import DataLoader, TensorDataset
 
 import pytest

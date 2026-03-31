@@ -1,4 +1,5 @@
 """Smoke tests for VAE forward pass, trainer integration, and visualization."""
+
 from pathlib import Path
 
 import matplotlib
@@ -12,7 +13,6 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from digit_latent_gen.models.vae import VAE
 from digit_latent_gen.training.trainer import Trainer
-
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "configs" / "vae_config.yaml"
@@ -87,7 +87,9 @@ def test_trainer_integration(vae_model, synthetic_dataset, test_device):
     assert not torch.isnan(torch.tensor(metrics["avg_loss"]))
 
 
-def test_trainer_cosine_scheduler_updates_learning_rate(vae_model, synthetic_dataset, test_device):
+def test_trainer_cosine_scheduler_updates_learning_rate(
+    vae_model, synthetic_dataset, test_device
+):
     """Trainer should support cosine learning-rate scheduling."""
     train_loader = DataLoader(synthetic_dataset, batch_size=8, shuffle=True)
     trainer = Trainer(
