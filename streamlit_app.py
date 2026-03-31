@@ -1,10 +1,13 @@
 from pathlib import Path
+from typing import Any, Optional
 
 import streamlit as st
 import torch
 import yaml
 
 from digit_latent_gen.inference import DiffusionGenerator, VAEGenerator
+
+GeneratorType = VAEGenerator | DiffusionGenerator
 
 ROOT = Path(__file__).resolve().parent
 VAE_CONFIG_PATH = ROOT / "configs" / "generate_config.yaml"
@@ -19,19 +22,19 @@ st.set_page_config(
 
 
 @st.cache_data
-def load_config(config_path):
+def load_config(config_path: Path) -> dict[str, Any]:
     with open(config_path, "r", encoding="utf-8") as config_file:
         return yaml.safe_load(config_file)
 
 
-def resolve_path(path_value):
+def resolve_path(path_value: str) -> Path:
     path = Path(path_value)
     if not path.is_absolute():
         path = ROOT / path
     return path
 
 
-def get_device():
+def get_device() -> torch.device:
     if torch.backends.mps.is_available():
         return torch.device("mps")
     if torch.cuda.is_available():
@@ -39,7 +42,7 @@ def get_device():
     return torch.device("cpu")
 
 
-def render_generated_images(images):
+def render_generated_images(images: torch.Tensor) -> None:
     num_images = int(images.size(0))
     cols = st.columns(min(4, max(1, num_images)))
     for idx, image in enumerate(images):
@@ -52,7 +55,12 @@ def render_generated_images(images):
             )
 
 
-def render_comparison(primary_title, primary_images, secondary_title, secondary_images):
+def render_comparison(
+    primary_title: str,
+    primary_images: torch.Tensor,
+    secondary_title: str,
+    secondary_images: torch.Tensor,
+) -> None:
     left, right = st.columns(2)
     with left:
         st.subheader(primary_title)
@@ -169,6 +177,10 @@ with st.sidebar:
     )
 
 if generate_clicked:
+    generator: GeneratorType
+    comparison_generator: Optional[GeneratorType] = None
+    comparison_images: Optional[torch.Tensor] = None
+
     if mode == "VAE":
         checkpoint = Path(checkpoint_path)
         if not checkpoint.exists():
@@ -211,8 +223,6 @@ if generate_clicked:
                     comparison_images = comparison_generator.generate(
                         num_samples=num_samples, label=label
                     )
-            else:
-                comparison_images = None
 
     else:
         vae_checkpoint = Path(vae_checkpoint_path)
@@ -255,11 +265,7 @@ if generate_clicked:
                 )
 
     st.success(f"Generated {images.size(0)} image(s) for label {label}.")
-    if (
-        compare_outputs
-        and "comparison_images" in locals()
-        and comparison_images is not None
-    ):
+    if compare_outputs and comparison_images is not None:
         if mode == "VAE":
             render_comparison(
                 "VAE output", images, "Latent Diffusion output", comparison_images
@@ -273,11 +279,11 @@ if generate_clicked:
 
     save_path = generator.save_generated_images(images, max_images=num_samples)
     st.info(f"Saved preview to {save_path}")
-    if (
-        compare_outputs
-        and "comparison_images" in locals()
-        and comparison_images is not None
-    ):
+    if compare_outputs and comparison_images is not None:
+        if comparison_generator is None:
+            raise RuntimeError(
+                "comparison_generator must exist when comparison_images are present."
+            )
         comparison_save_path = comparison_generator.save_generated_images(
             comparison_images, max_images=num_samples
         )

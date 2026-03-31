@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Optional, Sequence, Tuple, Union
+from typing import Optional, Sequence, Tuple, Union, cast
 
 import torch
 import torch.nn as nn
@@ -210,6 +210,26 @@ class DiffusionModel(nn.Module):
         view_shape = (timesteps.shape[0],) + (1,) * (len(x_shape) - 1)
         return gathered.view(view_shape)
 
+    @property
+    def betas_tensor(self) -> torch.Tensor:
+        return cast(torch.Tensor, self.betas)
+
+    @property
+    def sqrt_alphas_cumprod_tensor(self) -> torch.Tensor:
+        return cast(torch.Tensor, self.sqrt_alphas_cumprod)
+
+    @property
+    def sqrt_one_minus_alphas_cumprod_tensor(self) -> torch.Tensor:
+        return cast(torch.Tensor, self.sqrt_one_minus_alphas_cumprod)
+
+    @property
+    def sqrt_recip_alphas_tensor(self) -> torch.Tensor:
+        return cast(torch.Tensor, self.sqrt_recip_alphas)
+
+    @property
+    def posterior_variance_tensor(self) -> torch.Tensor:
+        return cast(torch.Tensor, self.posterior_variance)
+
     def q_sample(
         self,
         x_start: torch.Tensor,
@@ -226,10 +246,10 @@ class DiffusionModel(nn.Module):
             noise = torch.randn_like(x_start)
 
         sqrt_alphas_cumprod_t = self._extract(
-            self.sqrt_alphas_cumprod, t, x_start.shape
+            self.sqrt_alphas_cumprod_tensor, t, x_start.shape
         )
         sqrt_one_minus_alphas_cumprod_t = self._extract(
-            self.sqrt_one_minus_alphas_cumprod, t, x_start.shape
+            self.sqrt_one_minus_alphas_cumprod_tensor, t, x_start.shape
         )
 
         x_noisy = (
@@ -304,17 +324,19 @@ class DiffusionModel(nn.Module):
         predicted_noise = self.predict_noise(
             x_t, t, class_labels=class_labels, latent_z=latent_z
         )
-        sqrt_recip_alphas_t = self._extract(self.sqrt_recip_alphas, t, x_t.shape)
-        betas_t = self._extract(self.betas, t, x_t.shape)
+        sqrt_recip_alphas_t = self._extract(self.sqrt_recip_alphas_tensor, t, x_t.shape)
+        betas_t = self._extract(self.betas_tensor, t, x_t.shape)
         sqrt_one_minus_alphas_cumprod_t = self._extract(
-            self.sqrt_one_minus_alphas_cumprod, t, x_t.shape
+            self.sqrt_one_minus_alphas_cumprod_tensor, t, x_t.shape
         )
 
         model_mean = sqrt_recip_alphas_t * (
             x_t - betas_t * predicted_noise / sqrt_one_minus_alphas_cumprod_t
         )
 
-        posterior_variance_t = self._extract(self.posterior_variance, t, x_t.shape)
+        posterior_variance_t = self._extract(
+            self.posterior_variance_tensor, t, x_t.shape
+        )
         nonzero_mask = (t != 0).float().view((t.shape[0],) + (1,) * (x_t.ndim - 1))
         return model_mean + nonzero_mask * torch.sqrt(posterior_variance_t) * noise
 
@@ -327,7 +349,7 @@ class DiffusionModel(nn.Module):
     ) -> torch.Tensor:
         """Run the full reverse process and return latent samples."""
         sample_device = (
-            torch.device(device) if device is not None else self.betas.device
+            torch.device(device) if device is not None else self.betas_tensor.device
         )
         x = torch.randn(*shape, device=sample_device)
         if class_labels is not None:
@@ -356,7 +378,7 @@ class DiffusionModel(nn.Module):
         """Generate latent samples for downstream VAE decoding."""
         if class_labels is None:
             class_labels = torch.zeros(
-                num_samples, dtype=torch.long, device=self.betas.device
+                num_samples, dtype=torch.long, device=self.betas_tensor.device
             )
         elif class_labels.ndim == 0:
             class_labels = class_labels.repeat(num_samples)
@@ -369,8 +391,10 @@ class DiffusionModel(nn.Module):
 
         return self.p_sample_loop(
             shape=(num_samples, self.latent_dim),
-            class_labels=class_labels.to(self.betas.device),
-            latent_z=latent_z.to(self.betas.device) if latent_z is not None else None,
+            class_labels=class_labels.to(self.betas_tensor.device),
+            latent_z=(
+                latent_z.to(self.betas_tensor.device) if latent_z is not None else None
+            ),
             device=device,
         )
 
