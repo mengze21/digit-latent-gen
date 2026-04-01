@@ -1,6 +1,17 @@
 # Digit Latent Generation
 
-This project implements a conditional Variational Autoencoder (VAE) for MNIST digit generation and latent space exploration.
+## Table of Contents
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Installation](#installation)
+- [Training](#training)
+- [Generation](#generation)
+- [Streamlit App](#streamlit-app)
+- [Docker Deployment](#docker-deployment)
+- [Evaluation](#evaluation)
+- [Configuration](#configuration)
+- [Development](#development)
+- [License](#license)
 
 ## Features
 
