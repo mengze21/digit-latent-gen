@@ -34,16 +34,16 @@ training:
 evaluation:
   batch_size: 632
   num_workers: 0
-  vae_checkpoint_path: "checkpoints/latest.pt"
-  diffusion_checkpoint_path: "checkpoints/latest_diffusion.pt"
+  vae_checkpoint_path: "checkpoints/vae_model.pt"
+  diffusion_checkpoint_path: "checkpoints/diffusion_model.pt"
   output_dir: "outputs"
   log_filename: "evaluate_diffusion.log"
   save_generated_samples: true
   num_generated_samples: 16
 
 generation:
-  vae_checkpoint_path: "checkpoints/latest.pt"
-  diffusion_checkpoint_path: "checkpoints/latest_diffusion.pt"
+  vae_checkpoint_path: "checkpoints/vae_model.pt"
+  diffusion_checkpoint_path: "checkpoints/diffusion_model.pt"
   output_dir: "outputs/generated"
   default_num_samples: 4
   default_label: 0

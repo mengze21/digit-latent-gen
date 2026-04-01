@@ -5,7 +5,7 @@ model:
   num_classes: 10
 
 generation:
-  checkpoint_path: "checkpoints/latest.pt"
+  checkpoint_path: "checkpoints/vae_model.pt"
   output_dir: "outputs/generated"
   default_num_samples: 4
   default_label: 0

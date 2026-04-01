@@ -32,7 +32,7 @@ training:
 testing:
   batch_size: 64
   num_workers: 0
-  checkpoint_path: "checkpoints/latest.pt"
+  checkpoint_path: "checkpoints/vae_model.pt"
   save_reconstructions: true
   output_dir: "outputs"
   log_filename: "evaluate.log"
