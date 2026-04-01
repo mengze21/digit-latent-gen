@@ -19,7 +19,7 @@ training:
   learning_rate: 0.001
   time_steps: 1000
   latent_dim: 32
-  vae_checkpoint_path: "checkpoints/latest.pt"
+  vae_checkpoint_path: "checkpoints/vae_model.pt"
   hidden_dim: null
   num_layers: 4
   grad_clip_norm: null

@@ -223,7 +223,7 @@ def main():
     )
     log_filename = diffusion_config.get("log_filename", "diffusion_train.log")
     vae_checkpoint_path = resolve_path(
-        diffusion_config.get("vae_checkpoint_path", "checkpoints/latest.pt")
+        diffusion_config.get("vae_checkpoint_path", "checkpoints/vae_model.pt")
     )
     data_dir = paths_config["data_dir"]
     checkpoint_dir = paths_config["checkpoint_dir"]

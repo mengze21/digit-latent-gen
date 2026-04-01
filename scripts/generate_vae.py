@@ -74,7 +74,7 @@ def main():
     generation_config = config.get("generation", {})
 
     checkpoint_path = args.checkpoint_path or resolve_path(
-        generation_config.get("checkpoint_path", "checkpoints/latest.pt")
+        generation_config.get("checkpoint_path", "checkpoints/vae_model.pt")
     )
     output_dir = args.output_dir or resolve_path(
         generation_config.get("output_dir", "outputs/generated")

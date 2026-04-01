@@ -94,11 +94,11 @@ def main():
         else generation_config.get("default_num_samples", 1)
     )
     vae_checkpoint_path = args.vae_checkpoint_path or resolve_path(
-        generation_config.get("vae_checkpoint_path", "checkpoints/latest.pt")
+        generation_config.get("vae_checkpoint_path", "checkpoints/vae_model.pt")
     )
     diffusion_checkpoint_path = args.diffusion_checkpoint_path or resolve_path(
         generation_config.get(
-            "diffusion_checkpoint_path", "checkpoints/latest_diffusion.pt"
+            "diffusion_checkpoint_path", "checkpoints/diffusion_model.pt"
         )
     )
     output_dir = args.output_dir or resolve_path(

@@ -234,11 +234,11 @@ def main():
     num_generated_samples = evaluation_config.get("num_generated_samples", 16)
 
     vae_checkpoint_path = resolve_path(
-        evaluation_config.get("vae_checkpoint_path", "checkpoints/latest.pt")
+        evaluation_config.get("vae_checkpoint_path", "checkpoints/vae_model.pt")
     )
     diffusion_checkpoint_path = resolve_path(
         evaluation_config.get(
-            "diffusion_checkpoint_path", "checkpoints/latest_diffusion.pt"
+            "diffusion_checkpoint_path", "checkpoints/diffusion_model.pt"
         )
     )
     output_dir = paths_config["output_dir"] / "diffusion_evaluation"

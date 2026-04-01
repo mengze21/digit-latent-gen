@@ -183,7 +183,7 @@ def main():
     paths_config = runtime_config["paths"]
 
     checkpoint_path = resolve_path(
-        testing_config.get("checkpoint_path", "checkpoints/latest.pt")
+        testing_config.get("checkpoint_path", "checkpoints/vae_model.pt")
     )
     output_dir = paths_config["output_dir"] / "evaluation"
     log_dir = paths_config["log_dir"]

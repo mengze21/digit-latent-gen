@@ -1,5 +1,10 @@
 # Digit Latent Generation
 
+This repository explores MNIST digit generation with two related approaches:
+a conditional VAE for direct generation and reconstruction, and a latent
+diffusion model that operates on VAE latents. The project includes training,
+evaluation, inference scripts, a Streamlit UI, Docker support, and CI checks.
+
 ## Table of Contents
 - [Features](#features)
 - [Project Structure](#project-structure)
@@ -25,6 +30,8 @@
 
 ```text
 digit-latent-gen/
+├── .github/workflows/
+│   └── ci.yml
 ├── configs/
 │   ├── vae_config.yaml
 │   ├── diffusion_config.yaml
@@ -40,12 +47,20 @@ digit-latent-gen/
 │   ├── generate_diffusion.py
 │   └── show_vae_structure.py
 ├── src/digit_latent_gen/
-│   ├── models/vae.py
-│   ├── training/trainer.py
-│   ├── inference/generator.py
+│   ├── models/
+│   │   ├── vae.py
+│   │   └── diffusion.py
+│   ├── training/
+│   │   ├── trainer.py
+│   │   └── diffusion_trainer.py
+│   ├── inference/
+│   │   ├── generator.py
+│   │   └── diffusion_generator.py
 │   └── common/utils.py
 ├── docker/
+│   ├── Dockerfile.gpu
 │   └── Dockerfile.streamlit
+├── outputs/.gitkeep
 ├── streamlit_app.py
 ├── tests/
 └── pyproject.toml
@@ -61,6 +76,12 @@ pip install -e .
 ```
 
 If you are using Apple Silicon, use a PyTorch build compatible with your MPS environment.
+
+For development tools such as `pytest`, `black`, and `mypy`, install the dev extras:
+
+```bash
+pip install -e ".[dev]"
+```
 
 ## Training
 
@@ -107,7 +128,7 @@ Useful options:
 - `--output-path`: save the generated grid to a specific file
 - `--device`: force `cpu`, `cuda`, or `mps`
 
-By default, generation uses `checkpoints/latest.pt`.
+By default, generation uses `checkpoints/vae_model.pt`.
 The VAE generation script reads `configs/generate_config.yaml` by default.
 
 Generate digit images from a trained latent diffusion checkpoint:
@@ -153,7 +174,7 @@ docker run --rm -p 8501:8501 \
   digit-latent-gen-streamlit
 ```
 
-The app reads checkpoints from `/app/checkpoints` by default, so mount your trained `vae_model.pt` and `latest_diffusion.pt` there before starting the container.
+The app reads checkpoints from `/app/checkpoints` by default, so mount your trained `vae_model.pt` and `diffusion_model.pt` there before starting the container.
 
 ## Evaluation
 
@@ -203,7 +224,7 @@ model:
   num_classes: 10
 
 generation:
-  checkpoint_path: "checkpoints/latest.pt"
+  checkpoint_path: "checkpoints/vae_model.pt"
   output_dir: "outputs/generated"
   default_num_samples: 4
   default_label: 0
@@ -212,10 +233,24 @@ generation:
 
 ## Development
 
-Run tests with:
+Install development dependencies:
 
 ```bash
-python -m pytest tests/
+pip install -e ".[dev]"
+```
+
+Run the local checks used in CI:
+
+```bash
+black --check src tests
+mypy src
+pytest tests/ -q
+```
+
+Format code locally:
+
+```bash
+black src tests
 ```
 
 ## License

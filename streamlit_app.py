@@ -88,7 +88,7 @@ with st.sidebar:
         label_default = generation_config.get("default_label", 0)
         num_samples_default = generation_config.get("default_num_samples", 4)
         checkpoint_default = resolve_path(
-            generation_config.get("checkpoint_path", "checkpoints/latest.pt")
+            generation_config.get("checkpoint_path", "checkpoints/vae_model.pt")
         )
         output_default = resolve_path(
             generation_config.get("output_dir", "outputs/generated")
@@ -100,11 +100,11 @@ with st.sidebar:
         label_default = generation_config.get("default_label", 0)
         num_samples_default = generation_config.get("default_num_samples", 4)
         vae_checkpoint_default = resolve_path(
-            generation_config.get("vae_checkpoint_path", "checkpoints/latest.pt")
+            generation_config.get("vae_checkpoint_path", "checkpoints/vae_model.pt")
         )
         diffusion_checkpoint_default = resolve_path(
             generation_config.get(
-                "diffusion_checkpoint_path", "checkpoints/latest_diffusion.pt"
+                "diffusion_checkpoint_path", "checkpoints/diffusion_model.pt"
             )
         )
         output_default = resolve_path(
@@ -204,7 +204,7 @@ if generate_clicked:
             vae_checkpoint = checkpoint
             diffusion_checkpoint = Path(
                 diffusion_config.get("generation", {}).get(
-                    "diffusion_checkpoint_path", "checkpoints/latest_diffusion.pt"
+                    "diffusion_checkpoint_path", "checkpoints/diffusion_model.pt"
                 )
             )
             if diffusion_checkpoint.exists():
